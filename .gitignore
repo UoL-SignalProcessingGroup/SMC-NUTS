@@ -1,0 +1,18 @@
+__pycache__
+*.png
+*.gif
+build
+.ipynb_checkpoints
+*.out
+*.txt
+
+# Test files
+**/output*
+
+# BrigeStan files
+*.so
+*.hpp
+
+# Submodules
+bridgestan
+papers/stan_test_suite
