@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 
 sns.set_style("whitegrid")
 
-N_MCMC_RUNS = 25
+#Number of Monte-Carlo runs
+N_MC_RUNS = 25
 
 
 def monte_carlo_moments_estimators(x, return_sd=True):
@@ -91,7 +92,7 @@ def main():
     forward_mean_estimates = []
     gaussian_mean_estimates = []
 
-    for i in range(N_MCMC_RUNS):
+    for i in range(N_MC_RUNS):
         asymptotic_mean_estimate_file = Path(output_dir, f"asymptotic_lkernel/mean_estimate_{i}.csv")
         asymptotic_mean_estimates.append(np.loadtxt(asymptotic_mean_estimate_file, delimiter=","))
         forward_mean_estimate_file = Path(output_dir, f"forward_lkernel/mean_estimate_{i}.csv")
@@ -116,15 +117,15 @@ def main():
         axs[0].axhline(y=true_mean[i], linestyle="--", color="g")
         axs[1].axhline(y=true_mean[i], linestyle="--", color="g")
         axs[2].axhline(y=true_mean[i], linestyle="--", color="g")
-        axs[0].plot(asymptotic_mean_of_mean[:, i], "k", label="i")
-        axs[0].fill_between(range(len(asymptotic_mean_of_mean)), asymptotic_mean_of_mean[:, i] - asymptotic_sd_of_mean[:, i], asymptotic_mean_of_mean[:, i] + asymptotic_sd_of_mean[:, i], alpha=0.2)
-        axs[0].set_title("i")
-        axs[1].plot(fp_mean_of_mean[:, i], "b", label="ii")
-        axs[1].fill_between(range(len(asymptotic_mean_of_mean)), fp_mean_of_mean[:, i] - fp_sd_of_mean[:, i], fp_mean_of_mean[:, i] + fp_sd_of_mean[:, i], alpha=0.2)
-        axs[1].set_title("ii")
-        axs[2].plot(gauss_mean_of_mean[:, i], "r", label="iii")
-        axs[2].fill_between(range(len(asymptotic_mean_of_mean)), gauss_mean_of_mean[:, i] - gauss_sd_of_mean[:, i], gauss_mean_of_mean[:, i] + gauss_sd_of_mean[:, i], alpha=0.2)
-        axs[2].set_title("iii")
+        axs[0].plot(asymptotic_mean_of_mean[:, i], "k", label="Accept/Reject with tempering")
+        axs[0].fill_between(range(len(asymptotic_mean_of_mean)), asymptotic_mean_of_mean[:, i] - asymptotic_sd_of_mean[:, i], asymptotic_mean_of_mean[:, i] + asymptotic_sd_of_mean[:, i], color='orange', alpha=0.2)
+        axs[0].set_title("Accept/Reject with tempering")
+        axs[1].plot(fp_mean_of_mean[:, i], "b", label="Forwards proposal")
+        axs[1].fill_between(range(len(asymptotic_mean_of_mean)), fp_mean_of_mean[:, i] - fp_sd_of_mean[:, i], fp_mean_of_mean[:, i] + fp_sd_of_mean[:, i], color='orange', alpha=0.2)
+        axs[1].set_title("Forwards proposal")
+        axs[2].plot(gauss_mean_of_mean[:, i], "r", label="Gaussian approximation")
+        axs[2].fill_between(range(len(asymptotic_mean_of_mean)), gauss_mean_of_mean[:, i] - gauss_sd_of_mean[:, i], gauss_mean_of_mean[:, i] + gauss_sd_of_mean[:, i], color='orange', alpha=0.2)
+        axs[2].set_title("Gaussian approximation")
     for ax in axs.flat:
         ax.set(xlabel="Iteration", ylabel=r"E[$x$]")
         ax.set_ylim([-0.1, 1.1])
@@ -132,12 +133,13 @@ def main():
     plt.savefig("arma_mean.png")
 
     plt.figure(figsize=(10, 5))
-    plt.plot(asymptotic_mean_of_mean_mse, "k", label="i")
-    plt.plot(fp_mean_of_mean_mse, "b", label="ii")
-    plt.plot(gauss_mean_of_mean_mse, "r", label="iii")
+    plt.plot(asymptotic_mean_of_mean_mse, "k", label="Accept/Reject with tempering")
+    plt.plot(fp_mean_of_mean_mse, "b", label="Forwards proposal")
+    plt.plot(gauss_mean_of_mean_mse, "r", label="Gaussian approximation")
     plt.legend()
     plt.xlabel("Iteration")
     plt.ylabel("MSE")
+    plt.yscale("log")
     plt.tight_layout()
     plt.savefig("arma_mse.png")
 
@@ -145,7 +147,7 @@ def main():
     forward_mean_estimates = []
     gaussian_mean_estimates = []
 
-    for i in range(N_MCMC_RUNS):
+    for i in range(N_MC_RUNS):
         asymptotic_mean_estimate_file = Path(output_dir, f"asymptotic_lkernel/recycled_mean_estimate_{i}.csv")
         asymptotic_mean_estimates.append(np.loadtxt(asymptotic_mean_estimate_file, delimiter=","))
         forward_mean_estimate_file = Path(output_dir, f"forward_lkernel/recycled_mean_estimate_{i}.csv")
@@ -170,15 +172,15 @@ def main():
         axs[0].axhline(y=true_mean[i], linestyle="--", color="g")
         axs[1].axhline(y=true_mean[i], linestyle="--", color="g")
         axs[2].axhline(y=true_mean[i], linestyle="--", color="g")
-        axs[0].plot(asymptotic_mean_of_mean[:, i], "k", label="i")
-        axs[0].fill_between(range(len(asymptotic_mean_of_mean)), asymptotic_mean_of_mean[:, i] - asymptotic_sd_of_mean[:, i], asymptotic_mean_of_mean[:, i] + asymptotic_sd_of_mean[:, i], alpha=0.2)
-        axs[0].set_title("i")
-        axs[1].plot(fp_mean_of_mean[:, i], "b", label="ii")
-        axs[1].fill_between(range(len(asymptotic_mean_of_mean)), fp_mean_of_mean[:, i] - fp_sd_of_mean[:, i], fp_mean_of_mean[:, i] + fp_sd_of_mean[:, i], alpha=0.2)
-        axs[1].set_title("ii")
-        axs[2].plot(gauss_mean_of_mean[:, i], "r", label="iii")
-        axs[2].fill_between(range(len(asymptotic_mean_of_mean)), gauss_mean_of_mean[:, i] - gauss_sd_of_mean[:, i], gauss_mean_of_mean[:, i] + gauss_sd_of_mean[:, i], alpha=0.2)
-        axs[2].set_title("iii")
+        axs[0].plot(asymptotic_mean_of_mean[:, i], "k", label="Accept/Reject with tempering")
+        axs[0].fill_between(range(len(asymptotic_mean_of_mean)), asymptotic_mean_of_mean[:, i] - asymptotic_sd_of_mean[:, i], asymptotic_mean_of_mean[:, i] + asymptotic_sd_of_mean[:, i], color='orange',alpha=0.2)
+        axs[0].set_title("Accept/Reject with tempering")
+        axs[1].plot(fp_mean_of_mean[:, i], "b", label="Forwards proposal")
+        axs[1].fill_between(range(len(asymptotic_mean_of_mean)), fp_mean_of_mean[:, i] - fp_sd_of_mean[:, i], fp_mean_of_mean[:, i] + fp_sd_of_mean[:, i], color='orange', alpha=0.2)
+        axs[1].set_title("Forwards proposal")
+        axs[2].plot(gauss_mean_of_mean[:, i], "r", label="Gaussian approximation")
+        axs[2].fill_between(range(len(asymptotic_mean_of_mean)), gauss_mean_of_mean[:, i] - gauss_sd_of_mean[:, i], gauss_mean_of_mean[:, i] + gauss_sd_of_mean[:, i], color='orange',alpha=0.2)
+        axs[2].set_title("Gaussian approximation")
     for ax in axs.flat:
         ax.set(xlabel="Iteration", ylabel=r"E[$x$]")
         ax.set_ylim([-0.1, 1.1])
@@ -186,13 +188,14 @@ def main():
     plt.savefig("arma_recycled_mean.png")
 
     plt.figure(figsize=(10, 5))
-    plt.plot(asymptotic_mean_of_mean_mse, "k", label="i")
-    plt.plot(fp_mean_of_mean_mse, "b", label="ii")
-    plt.plot(gauss_mean_of_mean_mse, "r", label="iii")
+    plt.plot(asymptotic_mean_of_mean_mse, "k", label="Accept/Reject with tempering")
+    plt.plot(fp_mean_of_mean_mse, "b", label="Forwards proposal")
+    plt.plot(gauss_mean_of_mean_mse, "r", label="Gaussian approximation")
     plt.xticks(np.arange(0, 51, 5))
     plt.legend()
     plt.xlabel("Iteration")
     plt.ylabel("MSE")
+    plt.yscale("log")
     plt.tight_layout()
     plt.savefig("arma_recycled_mse.png")
 
