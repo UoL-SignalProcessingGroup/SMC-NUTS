@@ -92,11 +92,6 @@ def main():
         print(f"\nMCMC Run {i + 1} of {N_MCMC_RUNS}")
         rng = np.random.RandomState(10 * (i + 1) + (0 + 1))
 
-        # save seed to output directory
-        seed_path = Path.joinpath(output_dir, f"seed_{i}.txt")
-        with open(seed_path, "w") as f:
-            f.write(f"{10 * (i + 1) + (0 + 1)}")
-
         # Initialize samplers
         tempering = AdaptiveTempering(N=N, target=target, alpha=0.5)
         sample_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
