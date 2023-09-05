@@ -2,9 +2,7 @@ import json
 from pathlib import Path
 
 import autograd.numpy as np
-import matplotlib.pyplot as plt
 import seaborn as sns
-from autograd import elementwise_grad as egrad
 from scipy.stats import multivariate_normal
 
 from smcnuts.proposal.integrator.leapfrog import LeapfrogIntegrator
@@ -73,11 +71,6 @@ def main():
         step_size = model_config["step_size"]
     else:
         step_size = 0.5
-
-    if model_config is not None and "rw_cov" in model_config.keys():
-        rw_cov = model_config["rw_cov"]
-    else:
-        rw_cov = 0.5
 
     # Load Stan model
     target = StanModel(model_name=model_name, model_path=str(model_path), data_path=str(model_data_path))

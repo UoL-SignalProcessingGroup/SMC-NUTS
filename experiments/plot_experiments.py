@@ -130,7 +130,7 @@ def main():
         ax.set(xlabel="Iteration", ylabel=r"E[$x$]")
         ax.set_ylim([-0.1, 1.1])
     plt.tight_layout()
-    plt.savefig("arma_mean.png")
+    plt.savefig(f"{model_name}_mean.png")
 
     plt.figure(figsize=(10, 5))
     plt.plot(asymptotic_mean_of_mean_mse, "k", label="Accept/Reject with tempering")
@@ -141,7 +141,7 @@ def main():
     plt.ylabel("MSE")
     plt.yscale("log")
     plt.tight_layout()
-    plt.savefig("arma_mse.png")
+    plt.savefig(f"{model_name}_mse.png")
 
     asymptotic_mean_estimates = []
     forward_mean_estimates = []
@@ -185,7 +185,7 @@ def main():
         ax.set(xlabel="Iteration", ylabel=r"E[$x$]")
         ax.set_ylim([-0.1, 1.1])
     plt.tight_layout()
-    plt.savefig("arma_recycled_mean.png")
+    plt.savefig(f"{model_name}_recycled_mean.png")
 
     plt.figure(figsize=(10, 5))
     plt.plot(asymptotic_mean_of_mean_mse, "k", label="Accept/Reject with tempering")
@@ -197,7 +197,7 @@ def main():
     plt.ylabel("MSE")
     plt.yscale("log")
     plt.tight_layout()
-    plt.savefig("arma_recycled_mse.png")
+    plt.savefig(f"{model_name}_recycled_mse.png")
 
 
 if __name__ == "__main__":
