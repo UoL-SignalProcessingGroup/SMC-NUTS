@@ -17,7 +17,7 @@ from smcnuts.postprocessing.ess_tempering import estimate_and_recycle
 
 sns.set_style("whitegrid")
 
-N_MCMC_RUNS = 25
+N_MCMC_RUNS = 3
 VERBOSE = False
 
 
