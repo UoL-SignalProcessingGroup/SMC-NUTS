@@ -5,6 +5,7 @@ from .utils import hmc_accept_reject
 # Set max tree death of NUTS tree, default is 2^10.
 MAX_TREE_DEPTH = 10
 
+
 class NUTSProposal:
     """No-U-Turn Sampler Proposal
 
