@@ -5,7 +5,6 @@ import autograd.numpy as np
 import seaborn as sns
 from scipy.stats import multivariate_normal
 
-from smcnuts.proposal.integrator.leapfrog import LeapfrogIntegrator
 from smcnuts.lkernel.forward_lkernel import ForwardLKernel
 from smcnuts.lkernel.gaussian_lkernel import GaussianApproxLKernel
 from smcnuts.proposal.nuts import NUTSProposal
@@ -17,14 +16,14 @@ from smcnuts.postprocessing.ess_tempering import estimate_and_recycle
 
 sns.set_style("whitegrid")
 
-N_MCMC_RUNS = 3
+N_MCMC_RUNS = 5
 VERBOSE = False
 
 
 def main():
     # Sampler configuration
-    N = 2**8
-    K = 50
+    N = 200
+    K = 15
 
     # Specify model - CHANGE THIS TO CHANGE STAN MODEL
     model_name = "arma"
@@ -83,19 +82,19 @@ def main():
 
     for i in range(N_MCMC_RUNS):
         print(f"\nMCMC Run {i + 1} of {N_MCMC_RUNS}")
-        rng = np.random.RandomState(10 * (i + 1) + (0 + 1))
+        rng = np.random.RandomState(10 * (i + 1) + (8))
 
         # Initialize samplers
         tempering = AdaptiveTempering(N=N, target=target, alpha=0.5)
         sample_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
         recycling = ESSRecycling(K=K, target=target)
         momentum_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
-        integrator = LeapfrogIntegrator(target=target, step_size=step_size)
+        
 
         forward_kernel = NUTSProposal(
             target=target,
             momentum_proposal=momentum_proposal,
-            integrator=integrator,
+            step_size = step_size,
             rng=rng,
         )
 
@@ -177,7 +176,7 @@ def main():
         forward_kernel = NUTSProposal(
             target=target,
             momentum_proposal=momentum_proposal,
-            integrator=integrator,
+            step_size = step_size,
             accept_reject=True,
             rng=rng,
         )
