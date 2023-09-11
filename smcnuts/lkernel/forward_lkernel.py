@@ -19,7 +19,7 @@ class ForwardLKernel:
     def __init__(self, target):
         self.target = target
 
-    def calculate_hmc(self, x, x_new, v, v_new):
+    def calculate_L(self, x, x_new, v, v_new):
         """
         Description:
             Calculate the Forward Kernel approximation of the optimal L-kernel
