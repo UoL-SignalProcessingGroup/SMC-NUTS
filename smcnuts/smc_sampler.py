@@ -242,7 +242,7 @@ class SMCSampler():
             v = self.forward_kernel.momentum_proposal.rvs(self.N)
 
             grad_x = self.target.logpdfgrad(x, phi=phi_new)
-            x_new, v_new, num_steps = self.forward_kernel.rvs(x, v, grad_x, phi=phi_new)
+            x_new, v_new= self.forward_kernel.rvs(x, v, grad_x, phi=phi_new)
 
             # Calculate number of accepted particles
             self.acceptance_rate[k] = (
