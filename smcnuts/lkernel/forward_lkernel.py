@@ -19,21 +19,19 @@ class ForwardLKernel:
     def __init__(self, target):
         self.target = target
 
-    def calculate_L(self, x, x_new, v, v_new):
+    def calculate_L(self, r_new, _ ):
         """
         Description:
-            Calculate the Forward Kernel approximation of the optimal L-kernel
-            for a Hamiltonian Monte Carlo (HMC) proposal.
+            Calculate the Forward Kernel approximation of the L-kernel
+            for a Hamiltonian Monte Carlo (HMC)-based proposal.
 
         Args:
-            x: Current particle positions.
+            r_new: New particle momenta.
             x_new: New particle positions.
-            v: Current particle velocities.
-            v_new: New particle velocities.
 
         Returns:
             log_pdf: The forward kernel approximation of the optimal L-kernel.
         """
 
 
-        return AutoStats.multivariate_normal.logpdf(np.multiply(-1, v_new), mean=np.zeros(self.target.dim), cov=np.eye(self.target.dim))
+        return AutoStats.multivariate_normal.logpdf(np.multiply(-1, r_new), mean=np.zeros(self.target.dim), cov=np.eye(self.target.dim))

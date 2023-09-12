@@ -272,7 +272,7 @@ class SMCSampler():
                 p_logpdf_x = self.target.logpdf(x)
                 p_logpdf_xnew = self.target.logpdf(x_new)
 
-                lkernel_logpdf = self.lkernel.calculate_L(x, x_new, v, v_new)
+                lkernel_logpdf = self.lkernel.calculate_L(v_new, x_new)
                 q_logpdf = self.forward_kernel.logpdf(v)
 
                 logw_new = (

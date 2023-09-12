@@ -23,17 +23,16 @@ class GaussianApproxLKernel:
         self.D = target.dim
         self.N = N
 
-    def calculate_L(self, x, x_new, v, v_new):
+    def calculate_L(self, r_new, x_new):
         """
         Description:
             Calculate the Forward Kernel approximation of the optimal L-kernel
             for a Hamiltonian Monte Carlo (HMC) proposal.
 
         Args:
-            x: Current particle positions.
+            r_new: New particle momentum.
             x_new: New particle positions.
-            v: Current particle velocities.
-            v_new: New particle velocities.
+            
 
         Returns:
             log_pdf: The forward kernel approximation of the optimal L-kernel.
@@ -42,10 +41,10 @@ class GaussianApproxLKernel:
             Vectorize this function.
         """
 
-        lkernel_pdf = np.zeros(x.shape[0])
+        lkernel_pdf = np.zeros(x_new.shape[0])
 
-        # Collect v_new and x_new together into X
-        X = np.hstack([-v_new, x_new])
+        # Collect r_new and x_new together into X
+        X = np.hstack([-r_new, x_new])
 
         # Directly estimate the mean and covariance matrix of X
         mu_X = np.mean(X, axis=0)
@@ -54,7 +53,7 @@ class GaussianApproxLKernel:
         # Find mean of the joint distribution (p(v_-new, x_new))
         mu_negvnew, mu_xnew = mu_X[0:self.D], mu_X[self.D:2 * self.D]
 
-        # Find covariance matrix of joint distribution (p(-v_new, x_new))
+        # Find covariance matrix of joint distribution (p(-r_new, x_new))
         (cov_negvnew_negv,
             cov_negvnew_xnew,
             cov_xnew_negvnew,
@@ -90,7 +89,7 @@ class GaussianApproxLKernel:
 
             return logpdf
 
-        for i in range(x.shape[0]):
-            lkernel_pdf[i] = L_logpdf_vnew(-v_new[i], x_new[i])
+        for i in range(x_new.shape[0]):
+            lkernel_pdf[i] = L_logpdf_vnew(-r_new[i], x_new[i])
 
         return lkernel_pdf  # type: ignore
