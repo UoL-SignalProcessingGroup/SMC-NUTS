@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 sns.set_style("whitegrid")
 
 #Number of Monte-Carlo runs
-N_MC_RUNS = 5
+N_MC_RUNS = 3
 
 
 def monte_carlo_moments_estimators(x, return_sd=True):
