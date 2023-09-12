@@ -28,10 +28,14 @@ class AdaptiveTempering():
 
         x_new, p_logpdf_x_new_phi_old, old_phi = args
 
+        #precalculate the log prior and likeloihood for efficiency
+        logpri= self.target.logpdf(x_new, phi=0.0)
+        loglik= self.target.logpdf(x_new, phi=1.0) - logpri
+
         def _ess(new_phi):
             # Calculate logw at the new temperature
-            logw = self.target.logpdf(x_new, phi=new_phi) - p_logpdf_x_new_phi_old
-
+            logw = new_phi*loglik + logpri - p_logpdf_x_new_phi_old
+            
             # Normalise the weights
             index = ~np.isneginf(logw)
 
@@ -48,6 +52,6 @@ class AdaptiveTempering():
         if _ess(1.0) >= 0:
             return 1.0
 
-        opt_lambda = bisect(_ess, old_phi, 1)
+        opt_lambda = bisect(_ess, old_phi, 1.0)
 
         return opt_lambda
