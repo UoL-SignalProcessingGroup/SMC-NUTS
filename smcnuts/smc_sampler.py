@@ -153,10 +153,8 @@ class SMCSampler():
         """
 
         if hasattr(self.target, "constrained_dim"):
-            dim = self.target.constrained_dim
             _x = self.target.constrain(x)
         else:
-            dim = self.target.dim
             _x = x.copy()
 
         mean = wn.T @ _x
