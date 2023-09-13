@@ -1,7 +1,5 @@
 import numpy as np
 import warnings
-from autograd.scipy import stats as AutoStats
-
 
 class GaussianApproxLKernel:
     """Gaussian L Kernel
@@ -30,12 +28,12 @@ class GaussianApproxLKernel:
             for a Hamiltonian Monte Carlo (HMC) proposal.
 
         Args:
-            r_new: New particle momentum.
+            r_new: New particle momenta.
             x_new: New particle positions.
             
 
         Returns:
-            log_pdf: The forward kernel approximation of the optimal L-kernel.
+            log_pdf: The Gaussian approximation of the optimal L-kernel.
 
         Todo:
             Vectorize this function.
@@ -51,45 +49,45 @@ class GaussianApproxLKernel:
         cov_X = np.cov(np.transpose(X))
 
         # Find mean of the joint distribution (p(v_-new, x_new))
-        mu_negvnew, mu_xnew = mu_X[0:self.D], mu_X[self.D:2 * self.D]
+        mu_negrnew, mu_xnew = mu_X[0:self.D], mu_X[self.D:2 * self.D]
 
         # Find covariance matrix of joint distribution (p(-r_new, x_new))
-        (cov_negvnew_negv,
-            cov_negvnew_xnew,
-            cov_xnew_negvnew,
+        (cov_negrnew_negr,
+            cov_negrnew_xnew,
+            cov_xnew_negrnew,
             cov_xnew_xnew) = (cov_X[0:self.D, 0:self.D],
                             cov_X[0:self.D, self.D:2 * self.D],
                             cov_X[self.D:2 * self.D, 0:self.D],
                             cov_X[self.D:2 * self.D, self.D:2 * self.D])
 
+        # Variance of approximately optimal L-kernel
+        cov = (cov_negrnew_negr - cov_negrnew_xnew @
+                np.linalg.pinv(cov_xnew_xnew) @ cov_xnew_negrnew)
+
+        # Add ridge to avoid singularities
+        cov += np.eye(self.D) * 1e-6
+
+        # Log det covariance matrix
+        sign, logdet = np.linalg.slogdet(cov)
+        log_det_cov = sign * logdet
+
+        # Inverse covariance matrix
+        inv_cov = np.linalg.inv(cov)
+
         # Define new L-kernel
-        def L_logpdf_vnew(negvnew, x_new):
+        def L_logpdf_rnew(negrnew, x_new):
 
             # Mean of approximately optimal L-kernel
-            mu = (mu_negvnew + cov_negvnew_xnew @ np.linalg.pinv(cov_xnew_xnew) @
+            mu = (mu_negrnew + cov_negrnew_xnew @ np.linalg.pinv(cov_xnew_xnew) @
                     (x_new - mu_xnew))
-
-            # Variance of approximately optimal L-kernel
-            cov = (cov_negvnew_negv - cov_negvnew_xnew @
-                    np.linalg.pinv(cov_xnew_xnew) @ cov_xnew_negvnew)
-
-            # Add ridge to avoid singularities
-            cov += np.eye(self.D) * 1e-6
-
-            # Log det covariance matrix
-            sign, logdet = np.linalg.slogdet(cov)
-            log_det_cov = sign * logdet
-
-            # Inverse covariance matrix
-            inv_cov = np.linalg.inv(cov)
-
+            
             # Find log pdf
             logpdf = (-0.5 * log_det_cov -
-                        0.5 * (negvnew - mu).T @ inv_cov @ (negvnew - mu))
+                        0.5 * (negrnew - mu).T @ inv_cov @ (negrnew - mu))
 
             return logpdf
 
         for i in range(x_new.shape[0]):
-            lkernel_pdf[i] = L_logpdf_vnew(-r_new[i], x_new[i])
+            lkernel_pdf[i] = L_logpdf_rnew(-r_new[i], x_new[i])
 
         return lkernel_pdf  # type: ignore

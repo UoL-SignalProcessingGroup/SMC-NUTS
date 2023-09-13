@@ -16,13 +16,13 @@ from smcnuts.postprocessing.ess_tempering import estimate_and_recycle
 
 sns.set_style("whitegrid")
 
-N_MCMC_RUNS = 5
+N_MCMC_RUNS = 3
 VERBOSE = False
 
 
 def main():
     # Sampler configuration
-    N = 200
+    N = 100
     K = 15
 
     # Specify model - CHANGE THIS TO CHANGE STAN MODEL

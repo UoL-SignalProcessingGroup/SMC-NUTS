@@ -183,8 +183,8 @@ class SMCSampler():
         x = self.sample_proposal.rvs(self.N)
         x_new = np.zeros([self.N, self.target.dim])
 
-        # Tensors to hold velocities, gradients and number of leapfrog steps
-        v_new = np.zeros([self.N, self.target.dim])
+        # Tensors to hold momenta, gradients and number of leapfrog steps
+        r_new= np.zeros([self.N, self.target.dim])
         grad_x = np.zeros([self.N, self.target.dim])
 
         # Calculate the initial weights
@@ -237,10 +237,10 @@ class SMCSampler():
                 x, logw = self.resample(x, wn, self.log_likelihood[k])
 
             # Propogate particles through the forward kernel
-            v = self.forward_kernel.momentum_proposal.rvs(self.N)
+            r = self.forward_kernel.momentum_proposal.rvs(self.N)
 
             grad_x = self.target.logpdfgrad(x, phi=phi_new)
-            x_new, v_new= self.forward_kernel.rvs(x, v, grad_x, phi=phi_new)
+            x_new, r_new= self.forward_kernel.rvs(x, r, grad_x, phi=phi_new)
 
             # Calculate number of accepted particles
             self.acceptance_rate[k] = (
@@ -272,8 +272,8 @@ class SMCSampler():
                 p_logpdf_x = self.target.logpdf(x)
                 p_logpdf_xnew = self.target.logpdf(x_new)
 
-                lkernel_logpdf = self.lkernel.calculate_L(v_new, x_new)
-                q_logpdf = self.forward_kernel.logpdf(v)
+                lkernel_logpdf = self.lkernel.calculate_L(r_new, x_new)
+                q_logpdf = self.forward_kernel.logpdf(r)
 
                 logw_new = (
                     logw + p_logpdf_xnew - p_logpdf_x + lkernel_logpdf - q_logpdf
