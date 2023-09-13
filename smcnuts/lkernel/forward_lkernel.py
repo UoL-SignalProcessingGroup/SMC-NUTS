@@ -27,7 +27,6 @@ class ForwardLKernel:
 
         Args:
             r_new: New particle momenta.
-            x_new: New particle positions.
 
         Returns:
             log_pdf: The forward kernel approximation of the optimal L-kernel.
