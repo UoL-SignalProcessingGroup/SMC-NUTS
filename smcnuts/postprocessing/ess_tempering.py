@@ -2,6 +2,17 @@ import numpy as np
 
 
 def estimate_and_recycle(target, smcs):
+    """ Calculate adjusted weights, form estimates and recycle all past simulated samples.
+
+    This function calculates the adjusted importance weights `ess_logw` for all samples. The
+    weights are defined as \pi(x) / \pi(x, \phi_k) where \pi(x) is the target density and
+    \pi(x, \phi_k) is the density of the kth proposal. The adjusted weights are then used to
+    form estimates of the mean and variance of the target density, calculate recycling constants
+    and recycle all past simulated samples. This scheme is outlined in [1].
+
+    [1] Nguyen, T., Septier, F., Peters, G. and Delignon, Y. (2014). Improving
+    SMC sampler estimate by recycling all past simulated samples.
+    """
     ess_logw = np.zeros([smcs.K+1, smcs.N])
     recycling_consntants = np.zeros([smcs.K+1, smcs.N])
     for k in range(smcs.K+1):
