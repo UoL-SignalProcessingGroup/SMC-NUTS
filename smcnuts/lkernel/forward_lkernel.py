@@ -33,4 +33,4 @@ class ForwardLKernel:
             log_pdf: The forward kernel approximation of the optimal L-kernel.
         """
 
-        return self.momentum_proposal.logpdf(r_new)
+        return self.momentum_proposal.logpdf(np.multiply(-1, r_new))
