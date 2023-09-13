@@ -99,7 +99,7 @@ def main():
         )
 
         print("Sampling with Forward Proposal L Kernel")
-        forward_lkernel = ForwardLKernel(target=target)
+        forward_lkernel = ForwardLKernel(target=target, momentum_proposal=momentum_proposal)
         fp_nuts_smcs = SMCSampler(
             K=K,
             N=N,

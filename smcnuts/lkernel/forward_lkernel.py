@@ -16,8 +16,9 @@ class ForwardLKernel:
         target: Target distribution.
     """
 
-    def __init__(self, target):
+    def __init__(self, target, momentum_proposal):
         self.target = target
+        self.momentum_proposal = momentum_proposal
 
     def calculate_L(self, r_new, _ ):
         """
@@ -32,5 +33,4 @@ class ForwardLKernel:
             log_pdf: The forward kernel approximation of the optimal L-kernel.
         """
 
-
-        return AutoStats.multivariate_normal.logpdf(np.multiply(-1, r_new), mean=np.zeros(self.target.dim), cov=np.eye(self.target.dim))
+        return self.momentum_proposal.logpdf(r_new)
