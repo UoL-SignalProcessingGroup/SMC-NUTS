@@ -6,7 +6,13 @@ build-backend = "poetry.core.masonry.api"
 name = "smcnuts"
 version = "0.1.0"
 description = "An SMC sampler with a No-U-Turn-Sampler proposal in Python."
-authors = ["Matthew Carter <m.j.carter2@liverpool.ac.uk>"]
+authors = [
+    "Lee Devlin <lee.devlin@liverpool.ac.uk>",
+    "Matthew Carter <mcarter@liverpool.ac.uk>",
+    "Paul Horridge <paul.horridge@liverpool.ac.uk>",
+    "Peter L. Green <plgreen@liverpool.ac.uk>",
+    "Simon Maskell <smaskell@liverpool.ac.uk>",
+]
 readme = "README.md"
 
 [tool.poetry.dependencies]
