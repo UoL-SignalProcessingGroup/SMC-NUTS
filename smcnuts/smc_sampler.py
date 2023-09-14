@@ -55,6 +55,9 @@ class SMCSampler():
 
         if hasattr(self.forward_kernel, "logpdf") == False :
             raise Exception("Momentum proposal has no function called logpdf")
+        
+        if hasattr(self.forward_kernel, "rvs") == False :
+            raise Exception("Momentum proposal has no function called rvs")
 
         # Hold etimated quantities and diagnostic metrics
         if hasattr(self.target, "constrained_dim"):
