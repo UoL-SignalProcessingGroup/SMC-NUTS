@@ -34,7 +34,6 @@ class NUTSProposal:
         self.accept_reject = accept_reject
         self.step_size = step_size
         self.rng = rng
-        self.dist = multivariate_normal(np.zeros(self.target.dim), np.eye(self.target.dim), seed=rng)
 
     def rvs(self, x_cond, r_cond, grad_x, phi: float = 1.0):
         """
@@ -194,4 +193,4 @@ class NUTSProposal:
             log_prob: Log probability of the forward kernel.
         """
 
-        return self.dist.logpdf(r)
+        return self.momentum_proposal.logpdf(r)
