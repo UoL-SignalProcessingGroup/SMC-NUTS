@@ -7,7 +7,7 @@ setup(
     author="Lee Devlin, Matthew Carter, Paul Horridge, Peter L. Green, Simon Maskell",
     author_email="lee.devlin@liverpool.ac.uk, mcarter@liverpool.ac.uk, paul.horridge@liverpool.ac.uk, plgreen@liverpool.ac.uk, smaskell@liverpool.ac.uk",
     packages=setuptools.find_packages(),
-    python_requires='>=3.6',
+    python_requires='>=3.9',
     install_requires=[
         "numpy>=1.19",
         "autograd>=1.6",
