@@ -53,6 +53,9 @@ class SMCSampler():
             warnings.warn("Warning: Accept-reject is false and therefore not a valid MCMC kernel. Setting accept-reject to true.")
             self.forward_kernel.accept_reject = True
 
+        if hasattr(self.forward_kernel, "logpdf") == False :
+            raise Exception("Momentum proposal has no function called logpdf")
+
         # Hold etimated quantities and diagnostic metrics
         if hasattr(self.target, "constrained_dim"):
             self.mean_estimate = np.zeros([self.K + 1, self.target.constrained_dim])
