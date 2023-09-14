@@ -53,10 +53,19 @@ class SMCSampler():
             warnings.warn("Warning: Accept-reject is false and therefore not a valid MCMC kernel. Setting accept-reject to true.")
             self.forward_kernel.accept_reject = True
 
-        if hasattr(self.forward_kernel, "logpdf") == False :
-            raise Exception("Momentum proposal has no function called logpdf")
+        if hasattr(self.forward_kernel, "logpdf") == False:
+            raise Exception("Foward kernel has no function called logpdf")
         
-        if hasattr(self.forward_kernel, "rvs") == False :
+        if hasattr(self.forward_kernel, "rvs") == False:
+            raise Exception("Foward kernel has no function called rvs")
+
+        if hasattr(self.forward_kernel, "logpdfgrad") == False:
+            raise Exception("Foward kernel has no function called logpdfgrad")
+
+        if hasattr(self.forward_kernel.momentum_proposal, "logpdf") == False:
+            raise Exception("Momentum proposal has no function called logpdf")
+
+        if hasattr(self.forward_kernel.momentum_proposal, "rvs") == False:
             raise Exception("Momentum proposal has no function called rvs")
 
         # Hold etimated quantities and diagnostic metrics
