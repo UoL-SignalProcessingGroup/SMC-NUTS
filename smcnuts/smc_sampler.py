@@ -59,9 +59,6 @@ class SMCSampler():
         if hasattr(self.forward_kernel, "rvs") == False:
             raise Exception("Foward kernel has no function called rvs")
 
-        if hasattr(self.forward_kernel, "logpdfgrad") == False:
-            raise Exception("Foward kernel has no function called logpdfgrad")
-
         if hasattr(self.forward_kernel.momentum_proposal, "logpdf") == False:
             raise Exception("Momentum proposal has no function called logpdf")
 
