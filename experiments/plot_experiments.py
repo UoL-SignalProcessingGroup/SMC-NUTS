@@ -18,10 +18,10 @@ iv) Averaged Mean Square Estimates (MSE) for Recycled estimates compared to a 'g
 """
 
 #Number of Monte-Carlo runs
-N_MC_RUNS = 3
+N_MC_RUNS = 5
 
 # Specify model - CHANGE THIS TO CHANGE STAN MODEL
-model_name = "PRMwCD"
+model_name = "arma"
 
 
 def monte_carlo_moments_estimators(x, return_sd=True):
