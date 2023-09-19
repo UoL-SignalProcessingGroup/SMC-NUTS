@@ -36,6 +36,7 @@ SMC configurations:
 tempering : Set a tempering mechanism, default is None
 sample_proposal : = Set an initial distribution of samples
 recycling : Set a recycling scheme
+step_size : step size for the numerical integration. Taken from '../stan_models/$Model_name$/config_model.json', otherwise defaults to 0.5
 momentum_proposal : Set a distribution from which to sample a momentum value
 accept_reject : Turn on the accept_reject mechanism
 lkernel: Set L-kernel. Matching configurations above asymptoptic (i), forward_lkernel (ii), and gauss_lkernel (iii)
@@ -88,6 +89,7 @@ def main():
     else:
         model_config = None
     
+    # Load Step-size from model_config file
     if model_config is not None and "step_size" in model_config.keys():
         step_size = model_config["step_size"]
     else:
