@@ -139,7 +139,6 @@ def main():
         axs[2].set_title("Gaussian approximation")
     for ax in axs.flat:
         ax.set(xlabel="Iteration", ylabel=r"E[$x$]")
-        ax.set_ylim([-0.1, 1.1])
     plt.tight_layout()
     plt.savefig(f"{model_name}_mean.png")
 
@@ -194,7 +193,6 @@ def main():
         axs[2].set_title("Gaussian approximation")
     for ax in axs.flat:
         ax.set(xlabel="Iteration", ylabel=r"E[$x$]")
-        ax.set_ylim([-0.1, 1.1])
     plt.tight_layout()
     plt.savefig(f"{model_name}_recycled_mean.png")
 
