@@ -21,7 +21,7 @@ iv) Averaged Mean Square Estimates (MSE) for Recycled estimates compared to a 'g
 N_MC_RUNS = 3
 
 # Specify model - CHANGE THIS TO CHANGE STAN MODEL
-model_name = "arma"
+model_name = "PRMwCD"
 
 
 def monte_carlo_moments_estimators(x, return_sd=True):
@@ -200,7 +200,6 @@ def main():
     plt.plot(asymptotic_mean_of_mean_mse, "k", label="Accept/Reject with tempering")
     plt.plot(fp_mean_of_mean_mse, "b", label="Forwards proposal")
     plt.plot(gauss_mean_of_mean_mse, "r", label="Gaussian approximation")
-    plt.xticks(np.arange(0, 51, 5))
     plt.legend()
     plt.xlabel("Iteration")
     plt.ylabel("MSE")
