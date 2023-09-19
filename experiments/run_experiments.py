@@ -32,19 +32,21 @@ k: THe number of samples used
 Model_name: The name of the stan model being used, must be placed in '../stan_models/'
 VERBOSE: Updates to terminal the current iteration
 
-
-
-
-
-A new fixed seed is selected for each iteration
+SMC configurations:
+tempering : Set a tempering mechanism, default is None
+sample_proposal : = Set an initial distribution of samples
+recycling : Set a recycling scheme
+momentum_proposal : Set a distribution from which to sample a momentum value
+accept_reject : Turn on the accept_reject mechanism
+lkernel: Set L-kernel. Matching configurations above asymptoptic (i), forward_lkernel (ii), and gauss_lkernel (iii)
 """
 
 #Number of Monte-Carlo runs
-N_MCMC_RUNS = 3
+N_MCMC_RUNS = 25
 
 # Sampler configurations
-N = 100 #Number of samples
-K = 15 #Number of iterations
+N = 200 #Number of samples
+K = 50 #Number of iterations
 
 # Specify model - CHANGE THIS TO CHANGE STAN MODEL
 model_name = "arma"
@@ -101,7 +103,9 @@ def main():
 
     for i in range(N_MCMC_RUNS):
         print(f"\nMCMC Run {i + 1} of {N_MCMC_RUNS}")
-        rng = np.random.RandomState(10 * (i + 1) + (8))
+        
+        # Fix seed for particular iterations
+        rng = np.random.RandomState(10 * (i + 1))
 
         # Initialize samplers
         tempering = AdaptiveTempering(N=N, target=target, alpha=0.5)
