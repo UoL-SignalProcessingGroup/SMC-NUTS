@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 import numpy as np
@@ -7,8 +6,22 @@ import matplotlib.pyplot as plt
 
 sns.set_style("whitegrid")
 
+"""
+Plotting script to visualise results from the smc sampler
+
+Generates the following plots:
+i) Raw mean estimates of the target distribution show the mean over N_MC_RUNS Monte carlo runs with standard deviation
+ii) Recycled mean estimates of the target distribution show the mean over N_MC_RUNS Monte carlo runs with standard deviation
+iii) Averaged Mean Square Estimates (MSE) for raw estimates compared to a 'gold-standard' obtained from a long running MCMC chain from Stan
+iv) Averaged Mean Square Estimates (MSE) for Recycled estimates compared to a 'gold-standard' obtained from a long running MCMC chain from Stan
+
+"""
+
 #Number of Monte-Carlo runs
 N_MC_RUNS = 3
+
+# Specify model - CHANGE THIS TO CHANGE STAN MODEL
+model_name = "arma"
 
 
 def monte_carlo_moments_estimators(x, return_sd=True):
@@ -68,8 +81,6 @@ def mse_mean_var(x, ground_truth, log_scale=False, return_sd=False):
 
 
 def main():
-    # Specify model - CHANGE THIS TO CHANGE STAN MODEL
-    model_name = "arma"
 
     output_dir = Path.joinpath(Path.cwd(), "output", model_name)
     output_dir.mkdir(parents=True, exist_ok=True)
