@@ -16,17 +16,42 @@ from smcnuts.postprocessing.ess_tempering import estimate_and_recycle
 
 sns.set_style("whitegrid")
 
+"""
+Script to run the SMC-sampler with different configurations for multiple Monte Carlo runs
+
+The three configurations are:
+
+i) An SMC-sampler using accept-reject
+ii) An SMC-sampler parameterised by using the forwards proposal as the L-kernel
+iii) An SMC-sampler parameterised by using a Gaussian approximation to the optimal-L kernel. 
+
+Options:
+N_MCMC_RUNS: Number of Monte Carlo runs
+N: The number of iterations the sampler is ran for
+k: THe number of samples used
+Model_name: The name of the stan model being used, must be placed in '../stan_models/'
+VERBOSE: Updates to terminal the current iteration
+
+
+
+
+
+A new fixed seed is selected for each iteration
+"""
+
+#Number of Monte-Carlo runs
 N_MCMC_RUNS = 3
+
+# Sampler configurations
+N = 100 #Number of samples
+K = 15 #Number of iterations
+
+# Specify model - CHANGE THIS TO CHANGE STAN MODEL
+model_name = "arma"
+
 VERBOSE = False
 
-
 def main():
-    # Sampler configuration
-    N = 100
-    K = 15
-
-    # Specify model - CHANGE THIS TO CHANGE STAN MODEL
-    model_name = "arma"
 
     output_dir = Path.joinpath(Path.cwd(), "output", model_name)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -60,11 +85,6 @@ def main():
             model_config = json.load(f)
     else:
         model_config = None
-
-    if model_config is not None and "num_steps" in model_config.keys():
-        num_steps = model_config["num_steps"]
-    else:
-        num_steps = 10
     
     if model_config is not None and "step_size" in model_config.keys():
         step_size = model_config["step_size"]
@@ -77,7 +97,6 @@ def main():
     print(f"Model: {model_name}")
     print(f"K: {K}")
     print(f"N: {N}")
-    print(f"num_steps: {num_steps}")
     print(f"step_size: {step_size}")
 
     for i in range(N_MCMC_RUNS):
