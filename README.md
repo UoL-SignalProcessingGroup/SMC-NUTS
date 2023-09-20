@@ -74,7 +74,7 @@ SMC_NUTS.sample()
 
 We appreciate citations as they let us discover what people have been doing with the software. 
 
-To cite PySMC in publications use:
+To cite SMC-NUTS in publications use:
 
 Carter, M., Devlin, L., Green, P.L., Maskell, S. (2023). SMC-NUTS (1.0.0). https://github.com//UoL-SignalProcessingGroup/SMC-NUTS
 
