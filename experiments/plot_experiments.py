@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 import numpy as np
@@ -7,8 +6,22 @@ import matplotlib.pyplot as plt
 
 sns.set_style("whitegrid")
 
+"""
+Plotting script to visualise results from the smc sampler
+
+Generates the following plots:
+i) Raw mean estimates of the target distribution show the mean over N_MC_RUNS Monte carlo runs with standard deviation
+ii) Recycled mean estimates of the target distribution show the mean over N_MC_RUNS Monte carlo runs with standard deviation
+iii) Averaged Mean Square Estimates (MSE) for raw estimates compared to a 'gold-standard' obtained from a long running MCMC chain from Stan
+iv) Averaged Mean Square Estimates (MSE) for Recycled estimates compared to a 'gold-standard' obtained from a long running MCMC chain from Stan
+
+"""
+
 #Number of Monte-Carlo runs
-N_MC_RUNS = 3
+N_MC_RUNS = 25
+
+# Specify model - CHANGE THIS TO CHANGE STAN MODEL
+model_name = "arma"
 
 
 def monte_carlo_moments_estimators(x, return_sd=True):
@@ -68,8 +81,6 @@ def mse_mean_var(x, ground_truth, log_scale=False, return_sd=False):
 
 
 def main():
-    # Specify model - CHANGE THIS TO CHANGE STAN MODEL
-    model_name = "arma"
 
     output_dir = Path.joinpath(Path.cwd(), "output", model_name)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -128,7 +139,6 @@ def main():
         axs[2].set_title("Gaussian approximation")
     for ax in axs.flat:
         ax.set(xlabel="Iteration", ylabel=r"E[$x$]")
-        ax.set_ylim([-0.1, 1.1])
     plt.tight_layout()
     plt.savefig(f"{model_name}_mean.png")
 
@@ -183,7 +193,6 @@ def main():
         axs[2].set_title("Gaussian approximation")
     for ax in axs.flat:
         ax.set(xlabel="Iteration", ylabel=r"E[$x$]")
-        ax.set_ylim([-0.1, 1.1])
     plt.tight_layout()
     plt.savefig(f"{model_name}_recycled_mean.png")
 
@@ -191,7 +200,6 @@ def main():
     plt.plot(asymptotic_mean_of_mean_mse, "k", label="Accept/Reject with tempering")
     plt.plot(fp_mean_of_mean_mse, "b", label="Forwards proposal")
     plt.plot(gauss_mean_of_mean_mse, "r", label="Gaussian approximation")
-    plt.xticks(np.arange(0, 51, 5))
     plt.legend()
     plt.xlabel("Iteration")
     plt.ylabel("MSE")

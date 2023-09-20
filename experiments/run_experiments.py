@@ -16,17 +16,45 @@ from smcnuts.postprocessing.ess_tempering import estimate_and_recycle
 
 sns.set_style("whitegrid")
 
-N_MCMC_RUNS = 3
+"""
+Script to run the SMC-sampler with different configurations for multiple Monte Carlo runs
+
+The three configurations are:
+
+i) An SMC-sampler using accept-reject
+ii) An SMC-sampler parameterised by using the forwards proposal as the L-kernel
+iii) An SMC-sampler parameterised by using a Gaussian approximation to the optimal-L kernel. 
+
+Options:
+N_MCMC_RUNS: Number of Monte Carlo runs
+N: The number of iterations the sampler is ran for
+k: THe number of samples used
+Model_name: The name of the stan model being used, must be placed in '../stan_models/'
+VERBOSE: Updates to terminal the current iteration
+
+SMC configurations:
+tempering : Set a tempering mechanism, default is None
+sample_proposal : = Set an initial distribution of samples
+recycling : Set a recycling scheme
+step_size : step size for the numerical integration. Taken from '../stan_models/$Model_name$/config_model.json', otherwise defaults to 0.5
+momentum_proposal : Set a distribution from which to sample a momentum value
+accept_reject : Turn on the accept_reject mechanism
+lkernel: Set L-kernel. Matching configurations above asymptoptic (i), forward_lkernel (ii), and gauss_lkernel (iii)
+"""
+
+#Number of Monte-Carlo runs
+N_MCMC_RUNS = 25
+
+# Sampler configurations
+N = 200 #Number of samples
+K = 50 #Number of iterations
+
+# Specify model - CHANGE THIS TO CHANGE STAN MODEL
+model_name = "arma"
+
 VERBOSE = False
 
-
 def main():
-    # Sampler configuration
-    N = 100
-    K = 15
-
-    # Specify model - CHANGE THIS TO CHANGE STAN MODEL
-    model_name = "arma"
 
     output_dir = Path.joinpath(Path.cwd(), "output", model_name)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -60,12 +88,8 @@ def main():
             model_config = json.load(f)
     else:
         model_config = None
-
-    if model_config is not None and "num_steps" in model_config.keys():
-        num_steps = model_config["num_steps"]
-    else:
-        num_steps = 10
     
+    # Load Step-size from model_config file
     if model_config is not None and "step_size" in model_config.keys():
         step_size = model_config["step_size"]
     else:
@@ -77,12 +101,13 @@ def main():
     print(f"Model: {model_name}")
     print(f"K: {K}")
     print(f"N: {N}")
-    print(f"num_steps: {num_steps}")
     print(f"step_size: {step_size}")
 
     for i in range(N_MCMC_RUNS):
         print(f"\nMCMC Run {i + 1} of {N_MCMC_RUNS}")
-        rng = np.random.RandomState(10 * (i + 1) + (8))
+        
+        # Fix seed for particular iterations
+        rng = np.random.RandomState(10 * (i + 1))
 
         # Initialize samplers
         tempering = AdaptiveTempering(N=N, target=target, alpha=0.5)
