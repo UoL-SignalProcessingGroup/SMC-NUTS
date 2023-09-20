@@ -28,9 +28,13 @@ An example is provided in the `examples` folder.
 
 **Example: An SMC sampler can be applied to a user-defined target density as follows**
 
+First we set the target distribution which is done via:
 ```
 target = StanModel(model_name=model_name, model_path=str(model_path), data_path=str(model_data_path))
 ```
+Here model_name is the name of the filename of the '.stan' file of interest, model_path and model_data_path direct to the path of the model file and its associated data, respectively. 
+
+Next we define some SMC options, such as the tempering stratergy, the initial proposal distribition (sample_proposal), the recycling scheme, and the proposal used to the initial momentum.
 ```
 tempering = AdaptiveTempering(N=N, target=target, alpha=0.5)
 sample_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
@@ -38,7 +42,7 @@ recycling = ESSRecycling(K=K, target=target)
 momentum_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
 ```
 
-
+Next we define parameters for the proposal distribution itself, by setting the target, the momentum proposal, the step_size and the random seed
 ```
 forward_kernel = NUTSProposal(
     target=target,
@@ -47,6 +51,7 @@ forward_kernel = NUTSProposal(
     rng=rng,
 )
 ```
+Finally we set the SMC sampler up for K iterations using N samples, using the parameters set above, and generate samples 
 ```
 forward_lkernel = ForwardLKernel(target=target, momentum_proposal=momentum_proposal)
 SMC_NUTS= SMCSampler(
@@ -64,9 +69,6 @@ SMC_NUTS= SMCSampler(
 SMC_NUTS.sample()
 ```
 
-## Contact
-
-TO DO: ADD CONTACT
 
 ## Citation
 
