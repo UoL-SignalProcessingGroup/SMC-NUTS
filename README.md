@@ -22,6 +22,48 @@ python3 -m pip install -e .
 pip install bridgestan
 ```
 
+## Using SMC-NUTS
+
+An example is provided in the `examples` folder.
+
+**Example: An SMC sampler can be applied to a user-defined target density as follows**
+
+```
+target = StanModel(model_name=model_name, model_path=str(model_path), data_path=str(model_data_path))
+```
+```
+tempering = AdaptiveTempering(N=N, target=target, alpha=0.5)
+sample_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
+recycling = ESSRecycling(K=K, target=target)
+momentum_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
+```
+
+
+```
+forward_kernel = NUTSProposal(
+    target=target,
+    momentum_proposal=momentum_proposal,
+    step_size = step_size,
+    rng=rng,
+)
+```
+```
+forward_lkernel = ForwardLKernel(target=target, momentum_proposal=momentum_proposal)
+SMC_NUTS= SMCSampler(
+    K=K,
+    N=N,
+    target=target,
+    forward_kernel=forward_kernel,
+    sample_proposal=sample_proposal,
+    lkernel=forward_lkernel,
+    recycling=recycling,
+    verbose=VERBOSE,
+    rng=rng,
+)
+
+SMC_NUTS.sample()
+```
+
 ## Contact
 
 TO DO: ADD CONTACT
