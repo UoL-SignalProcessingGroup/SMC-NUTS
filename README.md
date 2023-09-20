@@ -42,7 +42,7 @@ recycling = ESSRecycling(K=K, target=target)
 momentum_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
 ```
 
-Next we define parameters for the proposal distribution itself, by setting the target, the momentum proposal, the step_size and the random seed
+Next we define parameters for the proposal distribution itself, by setting the target, the momentum proposal to define the intial momentum of the proposal distribution, the step_size and the random seed
 ```
 forward_kernel = NUTSProposal(
     target=target,
@@ -82,8 +82,8 @@ Or use the following BibTeX entry:
 
 ```
 @misc{pysmc,
-  title = {PySMC (1.0.0)},
-  author = {Carter, M., Devlin, L., Green, P.L., Maskell, S.},
+  title = {SMC-NUTS (1.0.0)},
+  author = { Devlin, L., Carter, M., Green, P.L., Maskell, S.},
   year = {2023},
   month = September,
   howpublished = {GitHub},
