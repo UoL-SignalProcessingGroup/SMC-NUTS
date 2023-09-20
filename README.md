@@ -30,4 +30,19 @@ TO DO: ADD CONTACT
 
 We appreciate citations as they let us discover what people have been doing with the software. 
 
-TO DO: ADD CITATION
+To cite PySMC in publications use:
+
+Carter, M., Devlin, L., Green, P.L., Maskell, S. (2023). SMC-NUTS (1.0.0). https://github.com//UoL-SignalProcessingGroup/SMC-NUTS
+
+Or use the following BibTeX entry:
+
+```
+@misc{pysmc,
+  title = {PySMC (1.0.0)},
+  author = {Carter, M., Devlin, L., Green, P.L., Maskell, S.},
+  year = {2023},
+  month = September,
+  howpublished = {GitHub},
+  url = {https://github.com//UoL-SignalProcessingGroup/SMC-NUTS}
+}
+```
