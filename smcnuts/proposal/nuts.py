@@ -174,9 +174,6 @@ class NUTSProposal:
         x = np.add(x, direction*self.step_size*r)
         grad_x = self.target.logpdfgrad(x, phi=temperature)
   
-        if temperature is not None:
-            grad_x *= temperature
-
         r = np.add(r, (direction*self.step_size/2)*grad_x)
         
         return x, r, grad_x
