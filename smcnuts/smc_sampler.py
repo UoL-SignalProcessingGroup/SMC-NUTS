@@ -221,11 +221,8 @@ class SMCSampler():
             self.x_saved[0] = x
             self.logw_saved[0] = logw
 
-        # Only create the tqdm progress bar on rank zero
-        progress_bar = tqdm(total=self.K, desc=f"NUTS Sampling", disable=not show_progress)
-
         # Main sampling loop
-        for k in range(self.K):
+        for k in tqdm(range(self.K), desc=f"NUTS Sampling", disable=not show_progress):
             # Record new temperature
             self.phi[k] = phi_new
 
@@ -298,10 +295,6 @@ class SMCSampler():
             if save_samples:
                 self.x_saved[k + 1] = x_new.copy()
                 self.logw_saved[k + 1] = logw_new.copy()
-
-            progress_bar.update(1)
-
-        progress_bar.close()
 
         # Normalise importance weights and calculate the log likelihood
         wn, self.log_likelihood[self.K] = self.normalise_weights(logw)
