@@ -199,20 +199,8 @@ class SMCSampler():
         r_new= np.zeros([self.N, self.target.dim])
         grad_x = np.zeros([self.N, self.target.dim])
 
-        # Calculate the initial weights
-        logw = np.zeros(self.N)
-        logw_new = np.zeros(self.N)
-        p_logpdf_x = self.target.logpdf(x)
-        q0_logpdf_x = self.sample_proposal.logpdf(x)
-        logw = p_logpdf_x - q0_logpdf_x
-
-        # Save initial samples
-        if save_samples:
-            self.x_saved[0] = x
-            self.logw_saved[0] = logw
-
         # Calculate the initial temperature
-        phi_old, phi_new = (0.0, 1.0) if self.tempering else (1.0, 1.0)
+        phi_old, phi_new = (0.0, 0.0) if self.tempering else (1.0, 1.0)
         if self.tempering:
             if isinstance(self.tempering, AdaptiveTempering):
                 p_logpdf_x_phi = self.target.logpdf(x, phi=phi_old)
@@ -220,6 +208,18 @@ class SMCSampler():
             phi_new = self.tempering.calculate_phi(args)
             if self.verbose:
                 print(f"Initial temperature: {phi_new}")
+
+        # Calculate the initial weights
+        logw = np.zeros(self.N)
+        logw_new = np.zeros(self.N)
+        p_logpdf_x = self.target.logpdf(x, phi=phi_new)
+        q0_logpdf_x = self.sample_proposal.logpdf(x)
+        logw = p_logpdf_x - q0_logpdf_x
+
+        # Save initial samples
+        if save_samples:
+            self.x_saved[0] = x
+            self.logw_saved[0] = logw
 
         # Only create the tqdm progress bar on rank zero
         progress_bar = tqdm(total=self.K, desc=f"NUTS Sampling", disable=not show_progress)
