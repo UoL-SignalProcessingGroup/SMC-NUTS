@@ -11,9 +11,8 @@ Plotting script to visualise results from the smc sampler
 
 Generates the following plots:
 i) Raw mean estimates of the target distribution show the mean over N_MC_RUNS Monte carlo runs with standard deviation
-ii) Recycled mean estimates of the target distribution show the mean over N_MC_RUNS Monte carlo runs with standard deviation
-iii) Averaged Mean Square Estimates (MSE) for raw estimates compared to a 'gold-standard' obtained from a long running MCMC chain from Stan
-iv) Averaged Mean Square Estimates (MSE) for Recycled estimates compared to a 'gold-standard' obtained from a long running MCMC chain from Stan
+ii) Averaged Mean Square Estimates (MSE) for raw estimates compared to a 'gold-standard' obtained from a long running MCMC chain from Stan
+
 
 """
 
@@ -152,60 +151,6 @@ def main():
     plt.yscale("log")
     plt.tight_layout()
     plt.savefig(f"{model_name}_mse.png")
-
-    asymptotic_mean_estimates = []
-    forward_mean_estimates = []
-    gaussian_mean_estimates = []
-
-    for i in range(N_MC_RUNS):
-        asymptotic_mean_estimate_file = Path(output_dir, f"asymptotic_lkernel/recycled_mean_estimate_{i}.csv")
-        asymptotic_mean_estimates.append(np.loadtxt(asymptotic_mean_estimate_file, delimiter=","))
-        forward_mean_estimate_file = Path(output_dir, f"forward_lkernel/recycled_mean_estimate_{i}.csv")
-        forward_mean_estimates.append(np.loadtxt(forward_mean_estimate_file, delimiter=","))
-        gaussian_mean_estimate_file = Path(output_dir, f"gaussian_lkernel/recycled_mean_estimate_{i}.csv")
-        gaussian_mean_estimates.append(np.loadtxt(gaussian_mean_estimate_file, delimiter=","))
-
-    asymptotic_mean_estimates = np.array(asymptotic_mean_estimates)
-    forward_mean_estimates = np.array(forward_mean_estimates)
-    gaussian_mean_estimates = np.array(gaussian_mean_estimates)
-
-    asymptotic_mean_of_mean, asymptotic_sd_of_mean = monte_carlo_moments_estimators(asymptotic_mean_estimates, return_sd=True)
-    fp_mean_of_mean, fp_sd_of_mean = monte_carlo_moments_estimators(forward_mean_estimates, return_sd=True)
-    gauss_mean_of_mean, gauss_sd_of_mean = monte_carlo_moments_estimators(gaussian_mean_estimates, return_sd=True)
-
-    asymptotic_mean_of_mean_mse, asymptotic_sd_of_mean_mse = mse_mean_var(asymptotic_mean_estimates, true_mean, return_sd=True)
-    fp_mean_of_mean_mse, fp_sd_of_mean_mse = mse_mean_var(forward_mean_estimates, true_mean, return_sd=True)
-    gauss_mean_of_mean_mse, gauss_sd_of_mean_mse = mse_mean_var(gaussian_mean_estimates, true_mean, return_sd=True)
-
-    fig, axs = plt.subplots(1, 3, figsize=(10, 5))
-    for i in range(len(true_mean)):
-        axs[0].axhline(y=true_mean[i], linestyle="--", color="g")
-        axs[1].axhline(y=true_mean[i], linestyle="--", color="g")
-        axs[2].axhline(y=true_mean[i], linestyle="--", color="g")
-        axs[0].plot(asymptotic_mean_of_mean[:, i], "k", label="Accept/Reject with tempering")
-        axs[0].fill_between(range(len(asymptotic_mean_of_mean)), asymptotic_mean_of_mean[:, i] - asymptotic_sd_of_mean[:, i], asymptotic_mean_of_mean[:, i] + asymptotic_sd_of_mean[:, i], color='orange',alpha=0.2)
-        axs[0].set_title("Accept/Reject with tempering")
-        axs[1].plot(fp_mean_of_mean[:, i], "b", label="Forwards proposal")
-        axs[1].fill_between(range(len(asymptotic_mean_of_mean)), fp_mean_of_mean[:, i] - fp_sd_of_mean[:, i], fp_mean_of_mean[:, i] + fp_sd_of_mean[:, i], color='orange', alpha=0.2)
-        axs[1].set_title("Forwards proposal")
-        axs[2].plot(gauss_mean_of_mean[:, i], "r", label="Gaussian approximation")
-        axs[2].fill_between(range(len(asymptotic_mean_of_mean)), gauss_mean_of_mean[:, i] - gauss_sd_of_mean[:, i], gauss_mean_of_mean[:, i] + gauss_sd_of_mean[:, i], color='orange',alpha=0.2)
-        axs[2].set_title("Gaussian approximation")
-    for ax in axs.flat:
-        ax.set(xlabel="Iteration", ylabel=r"E[$x$]")
-    plt.tight_layout()
-    plt.savefig(f"{model_name}_recycled_mean.png")
-
-    plt.figure(figsize=(10, 5))
-    plt.plot(asymptotic_mean_of_mean_mse, "k", label="Accept/Reject with tempering")
-    plt.plot(fp_mean_of_mean_mse, "b", label="Forwards proposal")
-    plt.plot(gauss_mean_of_mean_mse, "r", label="Gaussian approximation")
-    plt.legend()
-    plt.xlabel("Iteration")
-    plt.ylabel("MSE")
-    plt.yscale("log")
-    plt.tight_layout()
-    plt.savefig(f"{model_name}_recycled_mse.png")
 
 
 if __name__ == "__main__":

@@ -34,11 +34,10 @@ target = StanModel(model_name=model_name, model_path=str(model_path), data_path=
 ```
 Here model_name is the name of the filename of the '.stan' file of interest, model_path and model_data_path direct to the path of the model file and its associated data, respectively. 
 
-Next we define some SMC options, such as the tempering stratergy, the initial proposal distribition (sample_proposal), the recycling scheme, and the proposal used to the initial momentum.
+Next we define some SMC options, such as the tempering stratergy, the initial proposal distribition (sample_proposal),  and the proposal used to the initial momentum.
 ```
 tempering = AdaptiveTempering(N=N, target=target, alpha=0.5)
 sample_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
-recycling = ESSRecycling(K=K, target=target)
 momentum_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
 ```
 
@@ -61,7 +60,6 @@ SMC_NUTS= SMCSampler(
     forward_kernel=forward_kernel,
     sample_proposal=sample_proposal,
     lkernel=forward_lkernel,
-    recycling=recycling,
     verbose=VERBOSE,
     rng=rng,
 )

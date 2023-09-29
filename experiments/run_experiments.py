@@ -8,11 +8,10 @@ from scipy.stats import multivariate_normal
 from smcnuts.lkernel.forward_lkernel import ForwardLKernel
 from smcnuts.lkernel.gaussian_lkernel import GaussianApproxLKernel
 from smcnuts.proposal.nuts import NUTSProposal
-from smcnuts.recycling.ess import ESSRecycling
 from smcnuts.smc_sampler import SMCSampler
 from smcnuts.tempering.adaptive_tempering import AdaptiveTempering
 from smcnuts.model.bridgestan import StanModel
-from smcnuts.postprocessing.ess_tempering import estimate_and_recycle
+from smcnuts.postprocessing.ess_tempering import estimate_from_tempered
 
 sns.set_style("whitegrid")
 
@@ -35,7 +34,6 @@ VERBOSE: Updates to terminal the current iteration
 SMC configurations:
 tempering : Set a tempering mechanism, default is None
 sample_proposal : = Set an initial distribution of samples
-recycling : Set a recycling scheme
 step_size : step size for the numerical integration. Taken from '../stan_models/$Model_name$/config_model.json', otherwise defaults to 0.5
 momentum_proposal : Set a distribution from which to sample a momentum value
 accept_reject : Turn on the accept_reject mechanism
@@ -46,8 +44,8 @@ lkernel: Set L-kernel. Matching configurations above asymptoptic (i), forward_lk
 N_MCMC_RUNS = 25
 
 # Sampler configurations
-N = 200 #Number of samples
-K = 50 #Number of iterations
+N = 100 #Number of samples
+K = 15 #Number of iterations
 
 # Specify model - CHANGE THIS TO CHANGE STAN MODEL
 model_name = "arma"
@@ -112,7 +110,6 @@ def main():
         # Initialize samplers
         tempering = AdaptiveTempering(N=N, target=target, alpha=0.5)
         sample_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
-        recycling = ESSRecycling(K=K, target=target)
         momentum_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
         
 
@@ -132,7 +129,6 @@ def main():
             forward_kernel=forward_kernel,
             sample_proposal=sample_proposal,
             lkernel=forward_lkernel,
-            recycling=recycling,
             verbose=VERBOSE,
             rng=rng,
         )
@@ -149,10 +145,6 @@ def main():
         np.savetxt(mean_estimate_path, fp_nuts_smcs.mean_estimate, delimiter=",")
         var_estimate_path = Path.joinpath(fp_output_dir, f"var_estimate_{i}.csv")
         np.savetxt(var_estimate_path, fp_nuts_smcs.variance_estimate, delimiter=",")
-        mean_estimate_recycled_path = Path.joinpath(fp_output_dir, f"recycled_mean_estimate_{i}.csv")
-        np.savetxt(mean_estimate_recycled_path, fp_nuts_smcs.recycled_mean_estimate, delimiter=",")
-        var_estimate_recycled_path = Path.joinpath(fp_output_dir, f"recycled_var_estimate_{i}.csv")
-        np.savetxt(var_estimate_recycled_path, fp_nuts_smcs.recycled_variance_estimate, delimiter=",")
         ess_path = Path.joinpath(fp_output_dir, f"ess_{i}.csv")
         np.savetxt(ess_path, fp_nuts_smcs.ess, delimiter=",")
         phi_path = Path.joinpath(fp_output_dir, f"phi_{i}.csv")
@@ -169,7 +161,6 @@ def main():
             forward_kernel=forward_kernel,
             sample_proposal=sample_proposal,
             lkernel=gauss_lkernel,
-            recycling=recycling,
             verbose=VERBOSE,
             rng=rng,
         )
@@ -186,10 +177,6 @@ def main():
         np.savetxt(mean_estimate_path, gauss_nuts_smcs.mean_estimate, delimiter=",")
         var_estimate_path = Path.joinpath(gauss_output_dir, f"var_estimate_{i}.csv")
         np.savetxt(var_estimate_path, gauss_nuts_smcs.variance_estimate, delimiter=",")
-        mean_estimate_recycled_path = Path.joinpath(gauss_output_dir, f"recycled_mean_estimate_{i}.csv")
-        np.savetxt(mean_estimate_recycled_path, gauss_nuts_smcs.recycled_mean_estimate, delimiter=",")
-        var_estimate_recycled_path = Path.joinpath(gauss_output_dir, f"recycled_var_estimate_{i}.csv")
-        np.savetxt(var_estimate_recycled_path, gauss_nuts_smcs.recycled_variance_estimate, delimiter=",")
         ess_path = Path.joinpath(gauss_output_dir, f"ess_{i}.csv")
         np.savetxt(ess_path, gauss_nuts_smcs.ess, delimiter=",")
         phi_path = Path.joinpath(gauss_output_dir, f"phi_{i}.csv")
@@ -213,7 +200,6 @@ def main():
             sample_proposal=sample_proposal,
             tempering=tempering,
             lkernel="asymptotic",
-            recycling=recycling,
             verbose=VERBOSE,
             rng=rng,
         )
@@ -224,7 +210,7 @@ def main():
 
         print(f"\nFinished sampling in {tempered_nuts_smcs.run_time} seconds")
 
-        tempered_nuts_smcs = estimate_and_recycle(target, tempered_nuts_smcs)
+        tempered_nuts_smcs = estimate_from_tempered(target, tempered_nuts_smcs)
 
         tempered_output_dir = Path.joinpath(output_dir, "asymptotic_lkernel")
         tempered_output_dir.mkdir(parents=True, exist_ok=True)
@@ -234,10 +220,6 @@ def main():
         np.savetxt(mean_estimate_path, tempered_nuts_smcs.mean_estimate, delimiter=",")
         var_estimate_path = Path.joinpath(tempered_output_dir, f"var_estimate_{i}.csv")
         np.savetxt(var_estimate_path, tempered_nuts_smcs.variance_estimate, delimiter=",")
-        mean_estimate_recycled_path = Path.joinpath(tempered_output_dir, f"recycled_mean_estimate_{i}.csv")
-        np.savetxt(mean_estimate_recycled_path, tempered_nuts_smcs.recycled_mean_estimate, delimiter=",")
-        var_estimate_recycled_path = Path.joinpath(tempered_output_dir, f"recycled_var_estimate_{i}.csv")
-        np.savetxt(var_estimate_recycled_path, tempered_nuts_smcs.recycled_variance_estimate, delimiter=",")
         ess_path = Path.joinpath(tempered_output_dir, f"ess_{i}.csv")
         np.savetxt(ess_path, tempered_nuts_smcs.ess, delimiter=",")
         phi_path = Path.joinpath(tempered_output_dir, f"phi_{i}.csv")
