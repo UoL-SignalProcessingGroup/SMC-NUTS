@@ -5,7 +5,6 @@ from tqdm import tqdm
 import warnings
 from scipy.special import logsumexp
 
-from smcnuts.recycling.ess import ESSRecycling
 from smcnuts.tempering.adaptive_tempering import AdaptiveTempering
 
 
@@ -22,7 +21,6 @@ class SMCSampler():
         forward_kernel: Forward kernel used to propagate samples.
         sample_proposal: Distribution to draw the initial samples from (q0).
         lkernel: Approximation method for the optimum L-kernel.
-        recycling: Particle recycling method.
     """
 
     def __init__(
@@ -34,7 +32,6 @@ class SMCSampler():
         sample_proposal,
         lkernel="asymptotic",
         tempering=None,
-        recycling=None,
         verbose: bool = False,
         rng = np.random.default_rng(),
     ):
@@ -45,7 +42,7 @@ class SMCSampler():
         self.sample_proposal = sample_proposal  # Initial sample proposal distribution
         self.tempering = tempering  # Tempering scheme
         self.lkernel = lkernel  # L-kernel distribution
-        self.recycling = recycling  # Recycling scheme
+ 
         self.verbose = verbose  # Show stdout
         self.rng = rng  # Random number generator
 
@@ -68,18 +65,14 @@ class SMCSampler():
         # Hold etimated quantities and diagnostic metrics
         if hasattr(self.target, "constrained_dim"):
             self.mean_estimate = np.zeros([self.K + 1, self.target.constrained_dim])
-            self.recycled_mean_estimate = np.zeros([self.K + 1, self.target.constrained_dim])
             self.variance_estimate = np.zeros([self.K + 1, self.target.constrained_dim])
-            self.recycled_variance_estimate = np.zeros([self.K + 1, self.target.constrained_dim])
         else:
             self.mean_estimate = np.zeros([self.K + 1, self.target.dim])
-            self.recycled_mean_estimate = np.zeros([self.K + 1, self.target.dim])
             self.variance_estimate = np.zeros([self.K + 1, self.target.dim])
-            self.recycled_variance_estimate = np.zeros([self.K + 1, self.target.dim])
+
         self.resampled = [False] * (self.K + 1)
         self.ess = np.zeros(self.K + 1)
         self.log_likelihood = np.zeros(self.K + 1)
-        self.recycling_constant = np.zeros(self.K + 1)
         self.phi = np.zeros(self.K + 1)
         self.acceptance_rate = np.zeros(self.K)
         self.run_time = None
@@ -229,11 +222,6 @@ class SMCSampler():
             # Normalise importance weights and calculate the log likelihood
             wn, self.log_likelihood[k] = self.normalise_weights(logw)
 
-            if self.recycling:
-                # Calculate the recycling constant
-                if isinstance(self.recycling, ESSRecycling):
-                    self.recycling_constant[k] = self.recycling.constant(wn)
-
             # Estimate the mean and variance of the target distribution
             self.mean_estimate[k], self.variance_estimate[k] = self.estimate(x, wn)
 
@@ -299,11 +287,6 @@ class SMCSampler():
         # Normalise importance weights and calculate the log likelihood
         wn, self.log_likelihood[self.K] = self.normalise_weights(logw)
 
-        if self.recycling:
-            # Calculate the recycling constant
-            if isinstance(self.recycling, ESSRecycling):
-                self.recycling_constant[self.K] = self.recycling.constant(wn)
-
         # Estimate the mean and variance of the target distribution
         self.mean_estimate[self.K], self.variance_estimate[self.K] = self.estimate(x, wn)
 
@@ -311,17 +294,5 @@ class SMCSampler():
         self.ess[self.K] = self.calculate_ess(wn)
 
         self.phi[self.K] = phi_new
-
-        if self.recycling:
-            # Recycle the mean and variance estimates
-            self.recycled_mean_estimate = self.recycling.recycle_mean(
-                self.mean_estimate, self.recycling_constant
-            )
-            self.recycled_variance_estimate = self.recycling.recycle_variance(
-                self.variance_estimate,
-                self.mean_estimate,
-                self.recycled_mean_estimate,
-                self.recycling_constant,
-            )
 
         self.run_time = time() - start_time
