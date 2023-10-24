@@ -1,5 +1,4 @@
 import numpy as np
-from autograd.scipy import stats as AutoStats
 
 
 class ForwardLKernel:

@@ -1,5 +1,5 @@
 import numpy as np
-import warnings
+from scipy.stats import multivariate_normal
 
 class GaussianApproxLKernel:
     """Gaussian L Kernel
@@ -67,13 +67,6 @@ class GaussianApproxLKernel:
         # Add ridge to avoid singularities
         cov += np.eye(self.D) * 1e-6
 
-        # Log det covariance matrix
-        sign, logdet = np.linalg.slogdet(cov)
-        log_det_cov = sign * logdet
-
-        # Inverse covariance matrix
-        inv_cov = np.linalg.inv(cov)
-
         # Define new L-kernel
         def L_logpdf_rnew(negrnew, x_new):
 
@@ -82,9 +75,7 @@ class GaussianApproxLKernel:
                     (x_new - mu_xnew))
             
             # Find log pdf
-            logpdf = (-0.5 * log_det_cov -
-                        0.5 * (negrnew - mu).T @ inv_cov @ (negrnew - mu))
-
+            logpdf = multivariate_normal.logpdf(negrnew, mu, cov)
             return logpdf
 
         for i in range(x_new.shape[0]):
