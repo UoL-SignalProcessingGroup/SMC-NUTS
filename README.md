@@ -24,17 +24,20 @@ pip install bridgestan
 
 ## Using SMC-NUTS
 
-An example is provided in the `examples` folder.
+An example is provided in the `examples` folder:
+```
+python run_experiments.py
+```
 
-**Example: An SMC sampler can be applied to a user-defined target density as follows**
+**Example: An SMC sampler can be applied to a user-defined target density defined in Stan code as follows**
 
 First we set the target distribution which is done via:
 ```
 target = StanModel(model_name=model_name, model_path=str(model_path), data_path=str(model_data_path))
 ```
-Here model_name is the name of the filename of the '.stan' file of interest, model_path and model_data_path direct to the path of the model file and its associated data, respectively. 
+Here model_name is the name of the filename of a '.stan' file of interest which is located in the ```stan_models``` directory, model_path and model_data_path direct to the path of the model file and its associated data, respectively. 
 
-Next we define some SMC options, such as the tempering stratergy, the initial proposal distribition (sample_proposal),  and the proposal used to the initial momentum.
+Next we define some SMC options, such as the tempering stratergy, the initial proposal distribition (sample_proposal), and the proposal used to the initial momentum.
 ```
 tempering = AdaptiveTempering(N=N, target=target, alpha=0.5)
 sample_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
@@ -50,9 +53,10 @@ forward_kernel = NUTSProposal(
     rng=rng,
 )
 ```
-Finally we set the SMC sampler up for K iterations using N samples, using the parameters set above, and generate samples 
+Finally we set the SMC sampler up for K iterations using N samples, using the parameters set above, and generate samples ,
 ```
 forward_lkernel = ForwardLKernel(target=target, momentum_proposal=momentum_proposal)
+
 SMC_NUTS= SMCSampler(
     K=K,
     N=N,
@@ -74,7 +78,7 @@ We appreciate citations as they let us discover what people have been doing with
 
 To cite SMC-NUTS in publications use:
 
-Carter, M., Devlin, L., Green, P.L., Maskell, S. (2023). SMC-NUTS (1.0.0). https://github.com//UoL-SignalProcessingGroup/SMC-NUTS
+Devlin, L., Carter, M., Green, P.L., Maskell, S. (2023). SMC-NUTS (1.0.0). https://github.com//UoL-SignalProcessingGroup/SMC-NUTS
 
 Or use the following BibTeX entry:
 
