@@ -44,7 +44,7 @@ class SMCSampler():
         self.lkernel = lkernel  # L-kernel distribution
  
         self.verbose = verbose  # Show stdout
-        self.rng = rng  # Random number generator
+        self.rng = rng  # Random number generator        
 
         if self.lkernel == "asymptotic" and self.forward_kernel.accept_reject == False:
             warnings.warn("Warning: Accept-reject is false and therefore not a valid MCMC kernel. Setting accept-reject to true.")
