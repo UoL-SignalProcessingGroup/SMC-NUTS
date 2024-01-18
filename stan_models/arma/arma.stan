@@ -3,7 +3,7 @@
 data {
   int<lower=1> T; // number of observations
   array[T] real y; // observed outputs
-  real<lower=0, upper=1> phi;
+  real<lower=0, upper=1> phi; // Tempering parameter is passed through as data
 }
 parameters {
   real mu; // mean coefficient
