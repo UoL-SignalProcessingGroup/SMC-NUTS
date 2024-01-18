@@ -96,7 +96,7 @@ class NUTSProposal:
         stop = 0  
 
         while (stop == 0):
-            # Using a Bernoulli try choose a direction. -1 (backwards) or +1 (forwards)
+            # Using a Bernoulli trial choose a direction. -1 (backwards) or +1 (forwards)
             direction = int(2 * (self.rng.uniform(0,1) < 0.5) - 1)
 
             if (direction == -1):
@@ -121,6 +121,11 @@ class NUTSProposal:
         return x, r
 
     def build_tree(self, x, r, grad_x, logu, direction, depth, temperature=1.0):
+        """
+        Description
+        -----------
+        Generates samples using the recursive NUTS tree-building procedure [1]
+        """
         if (depth == 0):
             xprime, rprime, gradprime = self.NUTSLeapfrog(x, r, grad_x, direction, temperature)
             logpprime = self.target.logpdf(xprime, phi=temperature)
@@ -134,7 +139,7 @@ class NUTSProposal:
             gradminus = gradprime
             gradplus = gradprime
         else:
-            # Recursion: Implicitly build the height j-1 left and right subtrees.                                                                               
+                                                                                         
             xminus, rminus, gradminus, xplus, rplus, gradplus, xprime, rprime,  nprime, stopprime = self.build_tree(x, r, grad_x, logu, direction, depth - 1,  temperature)
             
             if (stopprime == 0):
