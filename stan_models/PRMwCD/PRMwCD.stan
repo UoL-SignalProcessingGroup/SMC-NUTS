@@ -5,7 +5,7 @@ data {
   int<lower=1> Clength; // Dimension of Beta
   int y[N]; // Observations
   real Xkernel[N*Clength]; // Precalculated Gaussian kernel a 1- vector representing a N*Clength matrix
-  real<lower=0, upper=1> phi;	
+  real<lower=0, upper=1> phi;	// Tempering parameter is passed through as data
 }
 
 parameters {
