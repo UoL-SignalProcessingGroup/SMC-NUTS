@@ -28,7 +28,7 @@ An example is provided in the `examples` directory:
 ```
 python run_experiments.py
 ```
-This code will generate multiple results for a model defined in `stan_models`. 
+This code will generate multiple results into the `experiments/output/model_name` for a model defined in `stan_models`. Results generated include: Mean estimates, variance estimates, effective sample size (ess), temperature (phi) schedule, and the acceptance probability. 
 
 Results can then be plotted by 
 ```
