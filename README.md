@@ -17,60 +17,24 @@ python3 -m pip install -e .
 ```
 
 **NOTE**:
-- The BridgeStan Pythonic interface to Stan must be installed in order to sample from Stan models.
+- The BridgeStan Pythonic interface to Stan must be installed in order to sample from Stan models (requirement > Python3.8).
 ```
 pip install bridgestan
 ```
 
 ## Using SMC-NUTS
 
-An example is provided in the `examples` folder:
+An example is provided in the `examples` directory:
 ```
 python run_experiments.py
 ```
+This code will generate multiple results for a model defined in `stan_models`. 
 
-**Example: An SMC sampler can be applied to a user-defined target density defined in Stan code as follows**
-
-First we set the target distribution which is done via:
+Results can then be plotted by 
 ```
-target = StanModel(model_name=model_name, model_path=str(model_path), data_path=str(model_data_path))
+python plot_experiments.py
 ```
-Here model_name is the name of the filename of a '.stan' file of interest which is located in the ```stan_models``` directory, model_path and model_data_path direct to the path of the model file and its associated data, respectively. 
-
-Next we define some SMC options, such as the tempering stratergy, the initial proposal distribition (sample_proposal), and the proposal used to the initial momentum.
-```
-tempering = AdaptiveTempering(N=N, target=target, alpha=0.5)
-sample_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
-momentum_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
-```
-
-Next we define parameters for the proposal distribution itself, by setting the target, the momentum proposal to define the intial momentum of the proposal distribution, the step_size and the random seed
-```
-forward_kernel = NUTSProposal(
-    target=target,
-    momentum_proposal=momentum_proposal,
-    step_size = step_size,
-    rng=rng,
-)
-```
-Finally we set the SMC sampler up for K iterations using N samples, using the parameters set above, and generate samples ,
-```
-forward_lkernel = ForwardLKernel(target=target, momentum_proposal=momentum_proposal)
-
-SMC_NUTS= SMCSampler(
-    K=K,
-    N=N,
-    target=target,
-    forward_kernel=forward_kernel,
-    sample_proposal=sample_proposal,
-    lkernel=forward_lkernel,
-    verbose=VERBOSE,
-    rng=rng,
-)
-
-SMC_NUTS.sample()
-```
-
+Which will plot averaged results over all runs. 
 
 ## Citation
 
