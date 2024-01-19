@@ -36,6 +36,34 @@ python plot_experiments.py
 ```
 Which will plot averaged results over all runs. 
 
+## Defining an SMC sampler and its L-kernel strategy
+An SMC sampler instance is created with the following call
+
+```
+SMC_NUTS= SMCSampler(
+    K=K,
+    N=N,
+    target=target,
+    forward_kernel=forward_kernel,
+    sample_proposal=sample_proposal,
+    tempering=tempering
+    lkernel=forward_lkernel,
+    verbose=VERBOSE,
+    rng=rng,
+)
+```
+Where `K` is the number of iterations the sampler is run over, `N` is the number of samples, target is a `StanModel` instance from Bridgestan, `forward_kernel` describes how samples are propagated inside the sampler, `tempering` describes the tempering strategy to be used, 'lkernel' tells the sampler what l-kernel to use and therefore which weight update needs to be implemented. 
+
+At present there are three strategies define the L-kernel in the SMC sampler
+- An Asymptopic L-kernel which uses accept-reject
+- An L-kernel parameterised by the Forwards proposal 
+- A Gaussian approximation to the Optimal-L-kernel
+
+Please consult `experiments/run_experiments.py` to see examples of how this may be implemented in practice.
+
+## Future updates
+- Adaptive learning of both the mass matrix and step-size utilised by the sampler.
+
 ## Citation
 
 We appreciate citations as they let us discover what people have been doing with the software. 
