@@ -2,11 +2,9 @@ from time import time
 
 import autograd.numpy as np
 from tqdm import tqdm
-import warnings
 from scipy.special import logsumexp
-
 from smcnuts.tempering.adaptive_tempering import AdaptiveTempering
-
+from .utils.CheckAttributes import *
 
 class SMCSampler():
     """Hamiltonian Monte Carlo SMC Sampler
@@ -46,29 +44,10 @@ class SMCSampler():
         self.verbose = verbose  # Show stdout
         self.rng = rng  # Random number generator        
 
-        if self.lkernel == "asymptotic" and self.forward_kernel.accept_reject == False:
-            warnings.warn("Warning: Accept-reject is false and therefore not a valid MCMC kernel. Setting accept-reject to true.")
-            self.forward_kernel.accept_reject = True
-
-        if hasattr(self.forward_kernel, "logpdf") == False:
-            raise Exception("Foward kernel has no function called logpdf")
         
-        if hasattr(self.forward_kernel, "rvs") == False:
-            raise Exception("Foward kernel has no function called rvs")
-
-        if hasattr(self.forward_kernel.momentum_proposal, "logpdf") == False:
-            raise Exception("Momentum proposal has no function called logpdf")
-
-        if hasattr(self.forward_kernel.momentum_proposal, "rvs") == False:
-            raise Exception("Momentum proposal has no function called rvs")
-
-        # Hold etimated quantities and diagnostic metrics
-        if hasattr(self.target, "constrained_dim"):
-            self.mean_estimate = np.zeros([self.K + 1, self.target.constrained_dim])
-            self.variance_estimate = np.zeros([self.K + 1, self.target.constrained_dim])
-        else:
-            self.mean_estimate = np.zeros([self.K + 1, self.target.dim])
-            self.variance_estimate = np.zeros([self.K + 1, self.target.dim])
+        Check_Fwd_Proposal(self.forward_kernel) # Run checks to make sure proposal has attributes to run
+        Check_Asym_Has_AccRej(self) # Force asymptoptic L-kernel utilises Accept=reject
+        Set_MeanVar_Arrays(self) # Set size of arrays of mean and variance estimates.
 
         self.resampled = [False] * (self.K + 1)
         self.ess = np.zeros(self.K + 1)
