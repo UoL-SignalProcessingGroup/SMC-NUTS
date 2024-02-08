@@ -41,7 +41,7 @@ class SMCSampler():
         self.sample_proposal = sample_proposal  # Initial sample proposal distribution
         self.tempering = tempering  # Tempering scheme
         self.lkernel = lkernel  # L-kernel distribution
-        self.samples = Samples(self.N, self.sample_proposal)
+        self.samples = Samples(self.N, self.target.dim, self.sample_proposal, self.target)
 
 
         self.verbose = verbose  # Show stdout
@@ -103,13 +103,7 @@ class SMCSampler():
             self.x_saved = np.zeros([self.K + 1, self.N, self.target.dim])
             self.logw_saved = np.zeros([self.K + 1, self.N])
 
-        # Draw initial samples from the sample proposal distribution
-        x = self.sample_proposal.rvs(self.N)
-        x_new = np.zeros([self.N, self.target.dim])
 
-        # Tensors to hold momenta, gradients and number of leapfrog steps
-        r_new= np.zeros([self.N, self.target.dim])
-        grad_x = np.zeros([self.N, self.target.dim])
 
         # Calculate the initial temperature
         phi_old, phi_new = (0.0, 0.0) if self.tempering else (1.0, 1.0)
@@ -121,12 +115,6 @@ class SMCSampler():
             if self.verbose:
                 print(f"Initial temperature: {phi_new}")
 
-        # Calculate the initial weights
-        logw = np.zeros(self.N)
-        logw_new = np.zeros(self.N)
-        p_logpdf_x = self.target.logpdf(x, phi=phi_new)
-        q0_logpdf_x = self.sample_proposal.logpdf(x)
-        logw = p_logpdf_x - q0_logpdf_x
 
         # Save initial samples
         if save_samples:

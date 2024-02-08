@@ -3,6 +3,24 @@ from scipy.special import logsumexp
 
 class Samples:
     def __init__(self, N, D, sample_proposal, target) -> None:
+
+        """
+        Samples is an object that contains the set of SMC samples and their properties.
+
+        params:
+        N: The number of samples
+        D: The number of dimensions the samples move in
+        x: The location of samples in the target space
+        x_new: The location of samples in the target space after a proposal step 
+        ess: The number of effective samples
+        grad_x: The initial gradient of the samples before a proposal step (needs to be removed)
+        r: The momentum at the start of a proposal
+        r_new: The momentum at the end of a proposal
+        logw: sample weights in log space
+        logw_new: sample weights in log space after a proposal
+        phi: temperature
+
+        """
         self.N = N
         self.D = D
         self.x_new = np.zeros([self.N, self.D])
