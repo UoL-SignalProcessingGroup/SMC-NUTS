@@ -43,43 +43,32 @@ class Samples:
         q0_logpdf_x = self.sample_proposal.logpdf(self.x)
         self.logw = p_logpdf_x - q0_logpdf_x
 
-    def normalise_weights(self, logw):
+    
+    
+    def normalise_weights(self):
         """
-        Normalises the sample weights
-
-        Args:
-            logw: A list of sample weights on the log scale
-
-        Returns:
-            A list of normalised weights
-
+        Normalises the sample weights in log scale
         """
 
-        index = ~np.isneginf(logw)
+        index = ~np.isneginf(self.logw)
 
-        log_likelihood = logsumexp(logw[index])
+        log_likelihood = logsumexp(self.logw[index])
 
         # Normalise the weights
-        wn = np.zeros_like(logw)
-        wn[index] = np.exp(logw[index] - log_likelihood)
+        wn = np.zeros_like(self.logw)
+        wn[index] = np.exp(self.logw[index] - log_likelihood)
 
-        return wn, log_likelihood  # type: ignore
+        self.wn =wn
+        self.log_likelihood=log_likelihood
 
-    def calculate_ess(self, wn):
+
+    def calculate_ess(self):
         """
         Calculate the effective sample size using the normalised
         sample weights.
-
-        Args:
-            wn: A list of normalised sample weights
-
-        Return:
-            The effective sample size
         """
+        self.ess = 1 / np.sum(np.square(self.wn))
 
-        ess = 1 / np.sum(np.square(wn))
-
-        return ess
 
     def resample(self, x, wn, log_likelihood):
         """

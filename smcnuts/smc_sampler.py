@@ -47,7 +47,7 @@ class SMCSampler():
         self.verbose = verbose  # Show stdout
         self.rng = rng  # Random number generator        
 
-        
+        # This needs to go, better to use templating
         Check_Fwd_Proposal(self.forward_kernel) # Run checks to make sure proposal has attributes to run
         Check_Asym_Has_AccRej(self) # Force asymptoptic L-kernel utilises Accept=reject
         Set_MeanVar_Arrays(self) # Set size of arrays of mean and variance estimates.
@@ -58,6 +58,16 @@ class SMCSampler():
         self.phi = np.zeros(self.K + 1)
         self.acceptance_rate = np.zeros(self.K)
         self.run_time = None
+
+        # Calculate the initial temperature
+        phi_old, phi_new = (0.0, 0.0) if self.tempering else (1.0, 1.0)
+        if self.tempering:
+            if isinstance(self.tempering, AdaptiveTempering):
+                p_logpdf_x_phi = self.target.logpdf(x, phi=phi_old)
+                args = [x, p_logpdf_x_phi, phi_old]
+            phi_new = self.tempering.calculate_phi(args)
+            if self.verbose:
+                print(f"Initial temperature: {phi_new}")
 
 
 
@@ -87,53 +97,39 @@ class SMCSampler():
 
         return mean, var
 
-    def sample(
-        self,
-        save_samples=False,
-        show_progress=True,
-    ):
+
+    def update_sampler(self, k, mean_estimate, variance_estimate, ess):
+        "Update the sampler for evaluation purposes."
+        self.phi[k] = self.samples.phi_new
+        self.log_likelihood[k] = self.samples.log_likelihood
+        self.mean_estimate[k] = mean_estimate
+        self.variance_estimate[k] = variance_estimate
+        self.ess = ess
+        
+
+    def sample(self, save_samples=False, show_progress=True):
         """
         Sample from the target distribution using an SMC sampler.
         """
 
         start_time = time()
 
-        # Tensors to hold samples drawn at each iteration
-        if save_samples:
-            self.x_saved = np.zeros([self.K + 1, self.N, self.target.dim])
-            self.logw_saved = np.zeros([self.K + 1, self.N])
-
-
-
-        # Calculate the initial temperature
-        phi_old, phi_new = (0.0, 0.0) if self.tempering else (1.0, 1.0)
-        if self.tempering:
-            if isinstance(self.tempering, AdaptiveTempering):
-                p_logpdf_x_phi = self.target.logpdf(x, phi=phi_old)
-                args = [x, p_logpdf_x_phi, phi_old]
-            phi_new = self.tempering.calculate_phi(args)
-            if self.verbose:
-                print(f"Initial temperature: {phi_new}")
-
-
-        # Save initial samples
-        if save_samples:
-            self.x_saved[0] = x
-            self.logw_saved[0] = logw
-
         # Main sampling loop
         for k in tqdm(range(self.K), desc=f"NUTS Sampling", disable=not show_progress):
-            # Record new temperature
-            self.phi[k] = phi_new
+            """
+            Prototype code
 
-            # Normalise importance weights and calculate the log likelihood
-            wn, self.log_likelihood[k] = self.normalise_weights(logw)
+            self.samples.normalise_weights()
+            mean_estimate, variance_estimate = self.estimate(self.samples.x, self.samples.wn)
+            self.samples.calculate_ess()
+            self.samples.resample()
+            self.samples.importance_sampling()
+            self.update_sampler()
+            """
 
-            # Estimate the mean and variance of the target distribution
-            self.mean_estimate[k], self.variance_estimate[k] = self.estimate(x, wn)
-
+           
             # Calculate the effective sample size and resample if necessary
-            self.ess[k] = self.calculate_ess(wn)
+            ess = self.calculate_ess(wn)
             if self.ess[k] < self.N / 2:
                 if self.verbose:
                     print(f"Resampling iteration {k} with ESS {self.ess[k]}")
@@ -187,9 +183,6 @@ class SMCSampler():
             x = x_new.copy()
             logw = logw_new.copy()
 
-            if save_samples:
-                self.x_saved[k + 1] = x_new.copy()
-                self.logw_saved[k + 1] = logw_new.copy()
 
         # Normalise importance weights and calculate the log likelihood
         wn, self.log_likelihood[self.K] = self.normalise_weights(logw)
