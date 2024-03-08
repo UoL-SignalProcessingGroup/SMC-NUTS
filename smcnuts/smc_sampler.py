@@ -37,11 +37,10 @@ class SMCSampler():
         self.K = K  # Number of iterations
         self.N = N  # Number of particles
         self.target = target  # Target distribution
-        self.forward_kernel = forward_kernel  # Forward kernel distribution
         self.sample_proposal = sample_proposal  # Initial sample proposal distribution
         self.tempering = tempering  # Tempering scheme
-        self.lkernel = lkernel  # L-kernel distribution
-        self.samples = Samples(self.N, self.target.dim, self.sample_proposal, self.target)
+        
+        self.samples = Samples(self.N, self.target.dim, self.sample_proposal, self.target, forward_kernel, lkernel, rng)
 
 
         self.verbose = verbose  # Show stdout
@@ -59,15 +58,6 @@ class SMCSampler():
         self.acceptance_rate = np.zeros(self.K)
         self.run_time = None
 
-        # Calculate the initial temperature
-        phi_old, phi_new = (0.0, 0.0) if self.tempering else (1.0, 1.0)
-        if self.tempering:
-            if isinstance(self.tempering, AdaptiveTempering):
-                p_logpdf_x_phi = self.target.logpdf(x, phi=phi_old)
-                args = [x, p_logpdf_x_phi, phi_old]
-            phi_new = self.tempering.calculate_phi(args)
-            if self.verbose:
-                print(f"Initial temperature: {phi_new}")
 
 
 
@@ -130,11 +120,7 @@ class SMCSampler():
            
             # Calculate the effective sample size and resample if necessary
             ess = self.calculate_ess(wn)
-            if self.ess[k] < self.N / 2:
-                if self.verbose:
-                    print(f"Resampling iteration {k} with ESS {self.ess[k]}")
-                self.resampled[k] = True
-                x, logw = self.resample(x, wn, self.log_likelihood[k])
+           
 
             # Propogate particles through the forward kernel
             r = self.forward_kernel.momentum_proposal.rvs(self.N)
