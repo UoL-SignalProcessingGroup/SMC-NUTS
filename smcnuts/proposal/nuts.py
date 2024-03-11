@@ -57,14 +57,6 @@ class NUTSProposal:
             x_prime[i], r_prime[i] = self.generate_nuts_samples(
                 x_cond[i], r_cond[i], grad_x[i], phi=phi
             )
-
-        # Apply an accept-reject step for the assymptoptic L-kernel. 
-        if self.accept_reject:
-            accepted = np.array([False] * len(x_prime))
-            for i in range(len(x_prime)):
-                accepted[i] = hmc_accept_reject(self.target.logpdf, x_cond[i], x_prime[i], r_cond[i], r_prime[i], rng=self.rng)
-            x_prime[~accepted] = x_cond[~accepted]
-            r_prime[~accepted] = r_cond[~accepted]
         
         return x_prime, r_prime
 

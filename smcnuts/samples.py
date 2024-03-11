@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.special import logsumexp
-from smcnuts.tempering.adaptive_tempering import AdaptiveTempering
 
 class Samples:
     def __init__(self, N, D, sample_proposal, target, forward_kernel, lkernel, rng) -> None:
@@ -28,27 +27,30 @@ class Samples:
         self.x_new = np.zeros([self.N, self.D])
         self.r= np.zeros([self.N, self.D])
         self.r_new= np.zeros([self.N, self.D])
-        self.grad_x = np.zeros([self.N, self.D])
         self.target=target
         self.ess=0
-        self.tempering = True
         self.logw = np.zeros(self.N)
         self.logw_new = np.zeros(self.N)
 
         self.initialise_samples(sample_proposal, target)
+        self.lkernel = lkernel
 
-        
-    def initialise_samples(self, sample_proposal, target):
+        if self.lkernel == "asymptotic" or self.lkernel == "asymptotic_with_tempering":
+            self.reweight_strategy = self._assymptotic_reweight
+        else:
+            self.reweight_strategy = self._non_assympototic_reweight
+            
+
+    def initialise_samples(self, sample_proposal):
         self.x = sample_proposal.rvs(self.N)
         self.phi_old, self.phi_new = (0.0, 0.0) if self.tempering else (1.0, 1.0) 
-        if self.tempering:
+        if self.lkernel == "asymptotic_with_tempering":
             p_logpdf_x_phi = self.target.logpdf(self.x, phi=self.phi_old)
             self.phi_new = self.tempering.calculate_phi([self.x, p_logpdf_x_phi,self.phi_old])
         p_logpdf_x = self.target.logpdf(self.x, phi=self.phi_new)
         q0_logpdf_x = sample_proposal.logpdf(self.x)
         self.logw = p_logpdf_x - q0_logpdf_x
 
-    
     
     def normalise_weights(self):
         """
@@ -74,11 +76,13 @@ class Samples:
         """
         self.ess = 1 / np.sum(np.square(self.wn))
 
+
     def resample_required(self):
         if(self.ess < self.N / 2):
             self.x, self.logw = self.resample(x, wn, self.log_likelihood[k])
             return True
         return False
+
 
     def resample(self, x, wn, log_likelihood):
         """
@@ -104,6 +108,41 @@ class Samples:
         logw_new = (np.ones(self.N) * log_likelihood) - np.log(self.N)
 
         return x_new, logw_new
+    
 
-    def importance_sampling(self):
-        pass
+    def propose_samples(self):
+        """
+        Run proposal distribution to generate a new set of samples
+        
+        """
+        # Propogate particles through the forward kernel
+        self.r = self.forward_kernel.momentum_proposal.rvs(self.N)
+
+        grad_x = self.target.logpdfgrad(self.x, phi=self.phi_new)
+        self.x_new, self.r_new= self.forward_kernel.rvs(self.x, self.r, grad_x, phi=self.phi_new)
+
+        # Calculate number of accepted particles
+        self.acceptance_rate[k] = (
+            np.sum(np.all(self.x_new != self.x, axis=1)) / self.N
+        )
+
+
+    def reweight(self):
+        self.logw_new = self.reweight_strategy()
+
+            
+    def _assymptotic_reweight(self):
+        p_logpdf_x_phi_old = self.target.logpdf(self.x, phi=self.phi_old)
+        p_logpdf_x_phi_new = self.target.logpdf(self.x, phi=self.phi_new)
+
+        return self.logw + p_logpdf_x_phi_new - p_logpdf_x_phi_old
+
+    def _non_assympototic_reweight(self):
+        p_logpdf_x = self.target.logpdf(self.x)
+        p_logpdf_xnew = self.target.logpdf(self.x_new)
+
+        lkernel_logpdf = self.lkernel.calculate_L(self.r_new, self.x_new)
+        q_logpdf = self.forward_kernel.logpdf(self.r)
+
+        return self.logw + p_logpdf_xnew - p_logpdf_x + lkernel_logpdf - q_logpdf
+              

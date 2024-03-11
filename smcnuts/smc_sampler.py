@@ -95,6 +95,9 @@ class SMCSampler():
         self.mean_estimate[k] = mean_estimate
         self.variance_estimate[k] = variance_estimate
         self.ess = ess
+        # Update x and logw
+        #x = x_new.copy()
+        #logw = logw_new.copy()
         
 
     def sample(self, save_samples=False, show_progress=True):
@@ -106,68 +109,26 @@ class SMCSampler():
 
         # Main sampling loop
         for k in tqdm(range(self.K), desc=f"NUTS Sampling", disable=not show_progress):
-            """
-            Prototype code
-
+            # Normalise the weights
             self.samples.normalise_weights()
+            
+            # Form estimates
             mean_estimate, variance_estimate = self.estimate(self.samples.x, self.samples.wn)
+            
+            # Calculate the Effective sample size
             self.samples.calculate_ess()
+            
+            # Resample if necessary
             self.samples.resample()
+            
+            # Propose new samples and reweight
             self.samples.importance_sampling()
+            
+            # Update sampler properties for current iteration
             self.update_sampler()
-            """
+            
 
            
-            # Calculate the effective sample size and resample if necessary
-            ess = self.calculate_ess(wn)
-           
-
-            # Propogate particles through the forward kernel
-            r = self.forward_kernel.momentum_proposal.rvs(self.N)
-
-            grad_x = self.target.logpdfgrad(x, phi=phi_new)
-            x_new, r_new= self.forward_kernel.rvs(x, r, grad_x, phi=phi_new)
-
-            # Calculate number of accepted particles
-            self.acceptance_rate[k] = (
-                np.sum(np.all(x_new != x, axis=1)) / self.N
-            )
-
-            # Calculate the new temperature
-            if self.tempering:
-                phi_old = phi_new
-                if isinstance(self.tempering, AdaptiveTempering):
-                    p_logpdf_x_new_phi_old = self.target.logpdf(x_new, phi=phi_new)
-                    args = [x_new, p_logpdf_x_new_phi_old, phi_new]
-                phi_new = self.tempering.calculate_phi(args)
-                if self.verbose:
-                    print(f"Temperature at iteration {k}: {phi_new}")
-
-            # Calculate the new weights
-            if self.lkernel == "asymptotic":
-                if self.tempering:
-                    # Evaluate the tempered target distribution
-                    p_logpdf_x_phi_old = self.target.logpdf(x, phi=phi_old)
-                    p_logpdf_x_phi_new = self.target.logpdf(x, phi=phi_new)
-
-                    logw_new = logw + p_logpdf_x_phi_new - p_logpdf_x_phi_old
-                else:
-                    logw_new = logw
-            else:
-                # Evaluate the target distribution, l kernel and forward kernel
-                p_logpdf_x = self.target.logpdf(x)
-                p_logpdf_xnew = self.target.logpdf(x_new)
-
-                lkernel_logpdf = self.lkernel.calculate_L(r_new, x_new)
-                q_logpdf = self.forward_kernel.logpdf(r)
-
-                logw_new = (
-                    logw + p_logpdf_xnew - p_logpdf_x + lkernel_logpdf - q_logpdf
-                )
-
-            # Update x and logw
-            x = x_new.copy()
-            logw = logw_new.copy()
 
 
         # Normalise importance weights and calculate the log likelihood
@@ -179,6 +140,6 @@ class SMCSampler():
         # Calculate the effective sample size and resample if necessary
         self.ess[self.K] = self.calculate_ess(wn)
 
-        self.phi[self.K] = phi_new
+        self.phi[self.K] = self.samples.phi_new
 
         self.run_time = time() - start_time

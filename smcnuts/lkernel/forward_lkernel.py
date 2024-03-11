@@ -34,13 +34,3 @@ class ForwardLKernel:
 
         return self.momentum_proposal.logpdf(np.multiply(-1, r_new))
     
-    def return_weight(self, logw, x, x_new):
-            p_logpdf_x = self.target.logpdf(x)
-            p_logpdf_xnew = self.target.logpdf(x_new)
-
-            lkernel_logpdf = self.calculate_L(r_new, x_new)
-            q_logpdf = self.forward_kernel.logpdf(r)
-
-            logw_new = (
-                logw + p_logpdf_xnew - p_logpdf_x + lkernel_logpdf - q_logpdf
-            )

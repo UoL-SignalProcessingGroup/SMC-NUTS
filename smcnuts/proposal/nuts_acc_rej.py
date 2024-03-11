@@ -1,12 +1,12 @@
 import autograd.numpy as np
 from scipy.stats import multivariate_normal
 from .utils import hmc_accept_reject
-from smcnuts.proposal.nuts_acc_rej import NUTSProposal_with_AccRej
+from smcnuts.proposal.nuts import NUTSProposal
 
 # Set max tree death of NUTS tree, default is 2^10.
 MAX_TREE_DEPTH = 10
 
-class NUTSProposal_with_AccRej_tempering(NUTSProposal_with_AccRej):
+class NUTSProposal_with_AccRej(NUTSProposal):
     """No-U-Turn Sampler Proposal
 
     Propagate samples using the proposal from the No-U-Turn proposal [1]. Algorithm is largely based on Alg. 3 of the reference. 
@@ -37,12 +37,15 @@ class NUTSProposal_with_AccRej_tempering(NUTSProposal_with_AccRej):
             r_prime: Updated particle momenta.
         """
 
-        x_prime, r_prime = super(NUTSProposal_with_AccRej_tempering, self).rvs(x_cond, r_cond, grad_x, phi)
+        x_prime, r_prime = super(NUTSProposal_with_AccRej, self).rvs(x_cond, r_cond, grad_x, phi)
 
-     
-        p_logpdf_x_new_phi_old = self.target.logpdf(x_prime, phi=phi_new)
-        args = [x_prime, p_logpdf_x_new_phi_old, phi_new]
-        phi_new = self.tempering.calculate_phi(args)
+        # Apply an accept-reject step for the assymptoptic L-kernel. 
+        accepted = np.array([False] * len(x_prime))
+        for i in range(len(x_prime)):
+            accepted[i] = hmc_accept_reject(self.target.logpdf, x_cond[i], x_prime[i], r_cond[i], r_prime[i], rng=self.rng)
+        x_prime[~accepted] = x_cond[~accepted]
+        r_prime[~accepted] = r_cond[~accepted]
 
 
-        return x_prime, r_prime, phi_new
+
+        return x_prime, r_prime
