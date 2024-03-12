@@ -8,7 +8,7 @@ from .utils.CheckAttributes import *
 from samples import Samples
 
 class SMCSampler():
-    """Hamiltonian Monte Carlo SMC Sampler
+    """Hamiltonian Monte Carlo (NUTS) SMC Sampler
 
     An SMC sampler that uses Hamiltonian Monte Carlo (HMC) methods to sample
     from the target distribution of interest.
@@ -94,7 +94,8 @@ class SMCSampler():
         self.log_likelihood[k] = self.samples.log_likelihood
         self.mean_estimate[k] = mean_estimate
         self.variance_estimate[k] = variance_estimate
-        self.ess = ess
+        self.ess[k] = ess
+        self.acceptance_rate[k] = (np.sum(np.all(self.x_new != self.x, axis=1)) / self.N) # Calculate number of accepted particles
         # Update x and logw
         #x = x_new.copy()
         #logw = logw_new.copy()
@@ -121,8 +122,14 @@ class SMCSampler():
             # Resample if necessary
             self.samples.resample()
             
-            # Propose new samples and reweight
-            self.samples.importance_sampling()
+            # Propose new samples
+            self.samples.propose_samples()
+
+            # Temper distribution
+            self.samples.update_temperature()
+
+            # Reweight samples
+            self.samples.reweight()
             
             # Update sampler properties for current iteration
             self.update_sampler()

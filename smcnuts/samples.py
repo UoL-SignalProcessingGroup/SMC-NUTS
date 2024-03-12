@@ -2,7 +2,7 @@ import numpy as np
 from scipy.special import logsumexp
 
 class Samples:
-    def __init__(self, N, D, sample_proposal, target, forward_kernel, lkernel, rng) -> None:
+    def __init__(self, N, D, sample_proposal, target, forward_kernel, lkernel, tempering, rng) -> None:
 
         """
         Samples is an object that contains the set of SMC samples and their properties.
@@ -39,7 +39,13 @@ class Samples:
             self.reweight_strategy = self._assymptotic_reweight
         else:
             self.reweight_strategy = self._non_assympototic_reweight
-            
+        
+        
+        if tempering:
+            self.update_temperature = self._tempering
+        else:
+            self.update_temperature =  lambda _: 1.0
+         
 
     def initialise_samples(self, sample_proposal):
         self.x = sample_proposal.rvs(self.N)
@@ -104,7 +110,6 @@ class Samples:
         x_new = x[i_new]
 
         # Determine new weights
-        # logw_new = np.log(np.ones(self.N_local)) - self.N_local
         logw_new = (np.ones(self.N) * log_likelihood) - np.log(self.N)
 
         return x_new, logw_new
@@ -120,11 +125,6 @@ class Samples:
 
         grad_x = self.target.logpdfgrad(self.x, phi=self.phi_new)
         self.x_new, self.r_new= self.forward_kernel.rvs(self.x, self.r, grad_x, phi=self.phi_new)
-
-        # Calculate number of accepted particles
-        self.acceptance_rate[k] = (
-            np.sum(np.all(self.x_new != self.x, axis=1)) / self.N
-        )
 
 
     def reweight(self):
@@ -145,4 +145,9 @@ class Samples:
         q_logpdf = self.forward_kernel.logpdf(self.r)
 
         return self.logw + p_logpdf_xnew - p_logpdf_x + lkernel_logpdf - q_logpdf
-              
+    
+    def _tempering(self):
+        p_logpdf_x_new_phi_old = self.target.logpdf(self.x_new, phi=self.phi_new)
+        args = [self.x_prime, p_logpdf_x_new_phi_old, self.phi_new]
+        phi_new = self.tempering.calculate_phi(args)
+        return phi_new
