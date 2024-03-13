@@ -1,61 +1,86 @@
 import numpy as np
 from scipy.special import logsumexp
+from smcnuts.lkernel.forward_lkernel import ForwardLKernel
+from smcnuts.lkernel.gaussian_lkernel import GaussianApproxLKernel
 
 class Samples:
-    def __init__(self, N, D, sample_proposal, target, forward_kernel, lkernel, tempering, rng) -> None:
+    def __init__(self,
+                N,
+                D,
+                sample_proposal,
+                target,
+                forward_kernel,
+                lkernel,
+                tempering,
+                rng) -> None:
 
         """
-        Samples is an object that contains the set of SMC samples and their properties.
+        Samples is an object that contains the set of SMC samples and their associated methods.
 
         params:
-        N: The number of samples
-        D: The number of dimensions the samples move in
-        x: The location of samples in the target space
-        x_new: The location of samples in the target space after a proposal step 
-        ess: The number of effective samples
-        grad_x: The initial gradient of the samples before a proposal step (needs to be removed)
-        r: The momentum at the start of a proposal
-        r_new: The momentum at the end of a proposal
-        logw: sample weights in log space
-        logw_new: sample weights in log space after a proposal
-        phi: temperature
-
+        N: The number of samples.
+        D: The number of dimensions the samples move in.
+        sample_proposal: The distribution from which the samples are initially drawn from the problem-space
+        target: The target we wish to evaluate
+        forward_kernel: The forward proposal (i.e. NUTS)
+        lkernel: The L-kernel strategy being used, either i) GaussianApprox ii) forwards iii) asymptotic
+        tempering: Boolean. True if target is to be tempered with adaptive cooling strategy
+        rng: random number seed
         """
         self.N = N
         self.D = D
-        self.rng = rng
-        self.x_new = np.zeros([self.N, self.D])
-        self.r= np.zeros([self.N, self.D])
-        self.r_new= np.zeros([self.N, self.D])
+        self.sample_proposal=sample_proposal
+        self.forward_kernel = forward_kernel
         self.target=target
-        self.ess=0
-        self.logw = np.zeros(self.N)
-        self.logw_new = np.zeros(self.N)
+        self.rng = rng
 
-        self.initialise_samples(sample_proposal, target)
-        self.lkernel = lkernel
-
-        if self.lkernel == "asymptotic" or self.lkernel == "asymptotic_with_tempering":
+        ## Set-up l-kernel if it is a function to be evaluated
+        if lkernel == "GaussianApproxLKernel":
+            self.lkernel = GaussianApproxLKernel(target=self.target, N=self.N)
+            self.reweight_strategy = self._non_assympototic_reweight
+        elif lkernel == "forwardsLKernel":
+            self.lkernel = ForwardLKernel(target=self.target, momentum_proposal=self.momentum_proposal)
+            self.reweight_strategy = self._non_assympototic_reweight
+        elif lkernel == "asymptoticLKernel":
             self.reweight_strategy = self._assymptotic_reweight
         else:
-            self.reweight_strategy = self._non_assympototic_reweight
-        
-        
+            raise Exception("Unknown L-kernel supplied") 
+
+        # Set up temerping if it is being used, if not set all the temperatures to be equal to 1.0  
         if tempering:
             self.update_temperature = self._tempering
+            self.phi_old = 0.0
         else:
             self.update_temperature =  lambda _: 1.0
+            self.phi_old = 1.0
+        
+        # Set up initial sample properties
+        self.initialise_samples()
          
 
-    def initialise_samples(self, sample_proposal):
+    def initialise_samples(self):
+        """
+        Initialise the properties of the samples and allocate arrarys
+        
+        x: The location of samples in the target space
+        x_new: The location of samples in the target space after a proposal step 
+        ess: The number of effective samples
+        r: The momentum at the start of a proposal
+        r_new: The momentum at the end of a proposal
+        phi_new: The new temperature of the system, calculated from phi_old
+        logw: sample weights in log space calculated by \pi(x)-q(x), where q is the initial sample proposal
+        logw_new: sample weights in log space after a proposal
+        wn: Vector of normalised weights
+        """
         self.x = sample_proposal.rvs(self.N)
-        self.phi_old, self.phi_new = (0.0, 0.0) if self.tempering else (1.0, 1.0) 
-        if self.lkernel == "asymptotic_with_tempering":
-            p_logpdf_x_phi = self.target.logpdf(self.x, phi=self.phi_old)
-            self.phi_new = self.tempering.calculate_phi([self.x, p_logpdf_x_phi,self.phi_old])
-        p_logpdf_x = self.target.logpdf(self.x, phi=self.phi_new)
-        q0_logpdf_x = sample_proposal.logpdf(self.x)
-        self.logw = p_logpdf_x - q0_logpdf_x
+        self.x_new = np.zeros([self.N, self.D])
+        self.ess = 0
+        self.r= np.zeros([self.N, self.D])
+        self.r_new= np.zeros([self.N, self.D])
+        self.phi_new = self.update_temperature
+        self.logw = self.target.logpdf(self.x, phi=self.phi_new) - sample_proposal.logpdf(self.x)
+        self.logw_new = np.zeros([self.N])
+        self.wn = np.zeros([self.N])
 
     
     def normalise_weights(self):
@@ -85,12 +110,12 @@ class Samples:
 
     def resample_required(self):
         if(self.ess < self.N / 2):
-            self.x, self.logw = self.resample(x, wn, self.log_likelihood[k])
+            self.x, self.logw = self._resample(self.x,  self.wn, self.log_likelihood)
             return True
         return False
 
 
-    def resample(self, x, wn, log_likelihood):
+    def _resample(self, x, wn, log_likelihood):
         """
         Resamples samples and their weights from the specified indexes.
 
