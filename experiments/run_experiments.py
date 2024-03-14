@@ -5,11 +5,9 @@ import autograd.numpy as np
 import seaborn as sns
 from scipy.stats import multivariate_normal
 
-from smcnuts.lkernel.forward_lkernel import ForwardLKernel
-from smcnuts.lkernel.gaussian_lkernel import GaussianApproxLKernel
-from smcnuts.proposal.nuts import NUTSProposal
+
+from smcnuts.proposal.nuts import NUTSProposal #should be in samples
 from smcnuts.smc_sampler import SMCSampler
-from smcnuts.tempering.adaptive_tempering import AdaptiveTempering
 from smcnuts.model.bridgestan import StanModel
 from smcnuts.postprocessing.ess_tempering import estimate_from_tempered
 
@@ -108,7 +106,6 @@ def main():
         rng = np.random.RandomState(10 * (i + 1))
 
         # Initialize samplers
-        tempering = AdaptiveTempering(N=N, target=target, alpha=0.5)
         sample_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
         momentum_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
         
