@@ -2,9 +2,10 @@ from time import time
 
 import autograd.numpy as np
 from tqdm import tqdm
-from smcnuts.tempering.adaptive_tempering import AdaptiveTempering
-from .utils.CheckAttributes import *
-from samples import Samples
+from smcnuts.samples.samples import Samples
+from smcnuts.proposal.nuts_acc_rej import NUTSProposal_with_AccRej
+from smcnuts.proposal.nuts import NUTSProposal
+
 
 class SMCSampler():
     """Hamiltonian Monte Carlo (NUTS) SMC Sampler
@@ -16,7 +17,6 @@ class SMCSampler():
         K: Number of iterations.
         N: Number of particles.
         target: Target distribution of interest.
-        forward_kernel: Forward kernel used to propagate samples.
         sample_proposal: Distribution to draw the initial samples from (q0).
         lkernel: Approximation method for the optimum L-kernel.
     """
@@ -26,7 +26,7 @@ class SMCSampler():
         K: int,
         N: int,
         target,
-        forward_kernel,
+        step_size,
         sample_proposal,
         lkernel,
         tempering=False,
@@ -37,11 +37,23 @@ class SMCSampler():
         self.N = N  # Number of particles
         self.target = target  # Target distribution
         
-        self.samples = Samples(self.N, self.target.dim, sample_proposal, self.target, forward_kernel, lkernel, rng) 
+        # Force asymptotic forward kernels to use NUTS with accept-reject mechanism
+        if(lkernel=="asymptotic"):
+            forward_kernel = NUTSProposal_with_AccRej(
+            target=self.target,
+            momentum_proposal=momentum_proposal,
+            step_size = step_size,
+            rng=self.rng)
+        
+        else:
+            forward_kernel = NUTSProposal(
+            target=self.target,
+            momentum_proposal=momentum_proposal,
+            step_size = step_size,
+            rng=self.rng)
 
-        # This needs to go, better to use templating
-        Check_Fwd_Proposal(self.forward_kernel) # Run checks to make sure proposal has attributes to run
-        Set_MeanVar_Arrays(self) # Set size of arrays of mean and variance estimates.
+        # Generate the set of samples to be used in the sampling process
+        self.samples = Samples(self.N, self.target.dim, sample_proposal, self.target, forward_kernel, lkernel, rng) 
 
         # Set up arrays to be output when the sampler has finished
         self.resampled = [False] * (self.K + 1)
@@ -50,6 +62,13 @@ class SMCSampler():
         self.phi = np.zeros(self.K + 1)
         self.acceptance_rate = np.zeros(self.K)
         self.run_time = None
+
+        if hasattr(SMC.target, "constrained_dim"):
+            self.mean_estimate = np.zeros([SMC.K + 1, SMC.target.constrained_dim])
+            self.variance_estimate = np.zeros([SMC.K + 1, SMC.target.constrained_dim])
+        else:
+            self.mean_estimate = np.zeros([SMC.K + 1, SMC.target.dim])
+            self.variance_estimate = np.zeros([SMC.K + 1, SMC.target.dim])
 
 
     def estimate(self, x, wn):
@@ -112,7 +131,7 @@ class SMCSampler():
             # Propose new samples
             self.samples.propose_samples()
 
-            # Temper distribution
+            # Temper distribution (non-tempered setting will result with \phi always equal to 1.0)
             self.samples.update_temperature()
 
             # Reweight samples
@@ -128,6 +147,5 @@ class SMCSampler():
         self.samples.calculate_ess()
         # Update sampler properties for the final proposal step
         self.update_sampler(self.K, mean_estimate, variance_estimate)
-
 
         self.run_time = time() - start_time
