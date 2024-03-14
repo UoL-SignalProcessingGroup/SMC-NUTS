@@ -2,7 +2,6 @@ from time import time
 
 import autograd.numpy as np
 from tqdm import tqdm
-
 from smcnuts.tempering.adaptive_tempering import AdaptiveTempering
 from .utils.CheckAttributes import *
 from samples import Samples
@@ -21,7 +20,7 @@ class SMCSampler():
         sample_proposal: Distribution to draw the initial samples from (q0).
         lkernel: Approximation method for the optimum L-kernel.
     """
-
+    # CHANGE THE ORDER!
     def __init__(
         self,
         K: int,
@@ -29,36 +28,28 @@ class SMCSampler():
         target,
         forward_kernel,
         sample_proposal,
-        lkernel="asymptotic",
-        tempering=None,
+        lkernel,
+        tempering=False,
         verbose: bool = False,
         rng = np.random.default_rng(),
     ):
         self.K = K  # Number of iterations
         self.N = N  # Number of particles
         self.target = target  # Target distribution
-        self.sample_proposal = sample_proposal  # Initial sample proposal distribution
-        self.tempering = tempering  # Tempering scheme
         
-        self.samples = Samples(self.N, self.target.dim, self.sample_proposal, self.target, forward_kernel, lkernel, rng)
-
-
-        self.verbose = verbose  # Show stdout
-        self.rng = rng  # Random number generator        
+        self.samples = Samples(self.N, self.target.dim, sample_proposal, self.target, forward_kernel, lkernel, rng) 
 
         # This needs to go, better to use templating
         Check_Fwd_Proposal(self.forward_kernel) # Run checks to make sure proposal has attributes to run
-        Check_Asym_Has_AccRej(self) # Force asymptoptic L-kernel utilises Accept=reject
         Set_MeanVar_Arrays(self) # Set size of arrays of mean and variance estimates.
 
+        # Set up arrays to be output when the sampler has finished
         self.resampled = [False] * (self.K + 1)
         self.ess = np.zeros(self.K + 1)
         self.log_likelihood = np.zeros(self.K + 1)
         self.phi = np.zeros(self.K + 1)
         self.acceptance_rate = np.zeros(self.K)
         self.run_time = None
-
-
 
 
     def estimate(self, x, wn):
@@ -88,18 +79,14 @@ class SMCSampler():
         return mean, var
 
 
-    def update_sampler(self, k, mean_estimate, variance_estimate, ess):
+    def update_sampler(self, k, mean_estimate, variance_estimate):
         "Update the sampler for evaluation purposes."
         self.phi[k] = self.samples.phi_new
         self.log_likelihood[k] = self.samples.log_likelihood
         self.mean_estimate[k] = mean_estimate
         self.variance_estimate[k] = variance_estimate
-        self.ess[k] = ess
-        self.acceptance_rate[k] = (np.sum(np.all(self.x_new != self.x, axis=1)) / self.N) # Calculate number of accepted particles
-        # Update x and logw
-        #x = x_new.copy()
-        #logw = logw_new.copy()
-        
+        self.ess[k] = self.samples.ess
+        self.acceptance_rate[k] = (np.sum(np.all(self.samples.x_new != self.samples.x, axis=1)) / self.N) # Calculate number of accepted particles        
 
     def sample(self, save_samples=False, show_progress=True):
         """
@@ -120,7 +107,7 @@ class SMCSampler():
             self.samples.calculate_ess()
             
             # Resample if necessary
-            self.samples.resample()
+            self.samples.resample_required()
             
             # Propose new samples
             self.samples.propose_samples()
@@ -132,21 +119,15 @@ class SMCSampler():
             self.samples.reweight()
             
             # Update sampler properties for current iteration
-            self.update_sampler()
+            self.update_sampler(k, mean_estimate, variance_estimate)
             
 
-           
+        # Calculate the final params based on the final proposal step  
+        self.samples.normalise_weights()
+        mean_estimate, variance_estimate = self.estimate(self.samples.x, self.samples.wn)
+        self.samples.calculate_ess()
+        # Update sampler properties for the final proposal step
+        self.update_sampler(self.K, mean_estimate, variance_estimate)
 
-
-        # Normalise importance weights and calculate the log likelihood
-        wn, self.log_likelihood[self.K] = self.normalise_weights(logw)
-
-        # Estimate the mean and variance of the target distribution
-        self.mean_estimate[self.K], self.variance_estimate[self.K] = self.estimate(x, wn)
-
-        # Calculate the effective sample size and resample if necessary
-        self.ess[self.K] = self.calculate_ess(wn)
-
-        self.phi[self.K] = self.samples.phi_new
 
         self.run_time = time() - start_time

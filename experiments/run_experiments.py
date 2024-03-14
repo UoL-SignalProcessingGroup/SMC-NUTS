@@ -105,7 +105,7 @@ def main():
         # Fix seed for particular iterations
         rng = np.random.RandomState(10 * (i + 1))
 
-        # Initialize samplers
+        # Initialize sampler initial distribution and momentum distribution
         sample_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
         momentum_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
         
@@ -118,15 +118,13 @@ def main():
         )
 
         print("Sampling with Forward Proposal L Kernel")
-        forward_lkernel = ForwardLKernel(target=target, momentum_proposal=momentum_proposal)
         fp_nuts_smcs = SMCSampler(
             K=K,
             N=N,
             target=target,
             forward_kernel=forward_kernel,
             sample_proposal=sample_proposal,
-            lkernel=forward_lkernel,
-            verbose=VERBOSE,
+            lkernel="forwardsLKernel",
             rng=rng,
         )
 
@@ -150,15 +148,13 @@ def main():
         np.savetxt(acceptance_rate_path, fp_nuts_smcs.acceptance_rate, delimiter=",")
 
         print("Sampling with Gaussian Approximation L Kernel")
-        gauss_lkernel = GaussianApproxLKernel(target=target, N=N)
         gauss_nuts_smcs = SMCSampler(
             K=K,
             N=N,
             target=target,
             forward_kernel=forward_kernel,
             sample_proposal=sample_proposal,
-            lkernel=gauss_lkernel,
-            verbose=VERBOSE,
+            lkernel="GaussianApproxLKernel",
             rng=rng,
         )
 
@@ -194,10 +190,10 @@ def main():
             N=N,
             target=target,
             forward_kernel=forward_kernel,
-            sample_proposal=sample_proposal,
-            tempering=tempering,
             lkernel="asymptotic",
-            verbose=VERBOSE,
+            sample_proposal=sample_proposal,
+            momentum_proposal = momentum_proposal
+            tempering=True,
             rng=rng,
         )
 

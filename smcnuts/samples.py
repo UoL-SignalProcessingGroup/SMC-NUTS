@@ -46,7 +46,7 @@ class Samples:
         else:
             raise Exception("Unknown L-kernel supplied") 
 
-        # Set up temerping if it is being used, if not set all the temperatures to be equal to 1.0  
+        # Set up tempering if it is being used, if not set all the temperatures to be equal to 1.0  
         if tempering:
             self.update_temperature = self._tempering
             self.phi_old = 0.0
