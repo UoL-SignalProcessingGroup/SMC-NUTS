@@ -108,7 +108,7 @@ class Samples:
         self.ess = 1 / np.sum(np.square(self.wn))
 
 
-    def resample_required(self):
+    def resample_if_required(self):
         if(self.ess < self.N / 2):
             self.x, self.logw = self._resample(self.x,  self.wn, self.log_likelihood)
             return True

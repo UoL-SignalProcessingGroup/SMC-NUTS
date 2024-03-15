@@ -1,5 +1,4 @@
 from time import time
-
 import autograd.numpy as np
 from tqdm import tqdm
 from smcnuts.samples.samples import Samples
@@ -20,31 +19,30 @@ class SMCSampler():
         sample_proposal: Distribution to draw the initial samples from (q0).
         lkernel: Approximation method for the optimum L-kernel.
     """
-    # CHANGE THE ORDER!
+    
     def __init__(
         self,
         K: int,
         N: int,
         target,
-        step_size,
+        step_size: float,
         sample_proposal,
-        lkernel,
+        momentum_proposal,
+        lkernel=forwardsLKernel,
         tempering=False,
-        verbose: bool = False,
         rng = np.random.default_rng(),
     ):
         self.K = K  # Number of iterations
         self.N = N  # Number of particles
         self.target = target  # Target distribution
-        
+    
         # Force asymptotic forward kernels to use NUTS with accept-reject mechanism
         if(lkernel=="asymptotic"):
             forward_kernel = NUTSProposal_with_AccRej(
             target=self.target,
             momentum_proposal=momentum_proposal,
             step_size = step_size,
-            rng=self.rng)
-        
+            rng=self.rng)        
         else:
             forward_kernel = NUTSProposal(
             target=self.target,
@@ -53,7 +51,7 @@ class SMCSampler():
             rng=self.rng)
 
         # Generate the set of samples to be used in the sampling process
-        self.samples = Samples(self.N, self.target.dim, sample_proposal, self.target, forward_kernel, lkernel, rng) 
+        self.samples = Samples(self.N, self.target.dim, sample_proposal, self.target, forward_kernel, lkernel, tempering, rng) 
 
         # Set up arrays to be output when the sampler has finished
         self.resampled = [False] * (self.K + 1)
@@ -116,24 +114,25 @@ class SMCSampler():
 
         # Main sampling loop
         for k in tqdm(range(self.K), desc=f"NUTS Sampling", disable=not show_progress):
+            
             # Normalise the weights
             self.samples.normalise_weights()
-            
+
             # Form estimates
             mean_estimate, variance_estimate = self.estimate(self.samples.x, self.samples.wn)
             
-            # Calculate the Effective sample size
+            # Calculate the effective sample size
             self.samples.calculate_ess()
             
             # Resample if necessary
-            self.samples.resample_required()
+            self.samples.resample_if_required()
             
             # Propose new samples
             self.samples.propose_samples()
-
+            
             # Temper distribution (non-tempered setting will result with \phi always equal to 1.0)
             self.samples.update_temperature()
-
+            
             # Reweight samples
             self.samples.reweight()
             

@@ -5,8 +5,6 @@ import autograd.numpy as np
 import seaborn as sns
 from scipy.stats import multivariate_normal
 
-
-from smcnuts.proposal.nuts import NUTSProposal #should be in samples
 from smcnuts.smc_sampler import SMCSampler
 from smcnuts.model.bridgestan import StanModel
 from smcnuts.postprocessing.ess_tempering import estimate_from_tempered
@@ -114,9 +112,11 @@ def main():
             K=K,
             N=N,
             target=target,
-            forward_kernel=forward_kernel,
+            step_size=step_size,
             sample_proposal=sample_proposal,
+            momentum_proposal=momentum_proposal,
             lkernel="forwardsLKernel",
+            tempering=False,
             rng=rng,
         )
 
@@ -132,8 +132,11 @@ def main():
             K=K,
             N=N,
             target=target,
+            step_size=step_size,
             sample_proposal=sample_proposal,
+            momentum_proposal=momentum_proposal,
             lkernel="GaussianApproxLKernel",
+            tempering=False,
             rng=rng,
         )
 
@@ -151,10 +154,11 @@ def main():
             K=K,
             N=N,
             target=target,
-            lkernel="asymptotic",
+            step_size=step_size,
             sample_proposal=sample_proposal,
-            momentum_proposal = momentum_proposal
-            tempering=True,
+            momentum_proposal=momentum_proposal,
+            lkernel="asymptotic",
+            tempering=False,
             rng=rng,
         )
 
