@@ -9,6 +9,7 @@ from smcnuts.smc_sampler import SMCSampler
 from smcnuts.model.bridgestan import StanModel
 from smcnuts.postprocessing.ess_tempering import estimate_from_tempered
 
+
 sns.set_style("whitegrid")
 
 """
@@ -89,8 +90,10 @@ def main():
     else:
         step_size = 0.5
 
+    print("****")
     # Load Stan model
     target = StanModel(model_name=model_name, model_path=str(model_path), data_path=str(model_data_path))
+    print("HELLO")
 
     print(f"Model: {model_name}")
     print(f"K: {K}")
@@ -125,7 +128,7 @@ def main():
         print(f"\nFinished sampling in {fp_nuts_smcs.run_time} seconds")
         
         # Save output to csv
-        save_output(fp_nuts_smcs, "forward_lkernel")
+        save_output(fp_nuts_smcs, "forward_lkernel", i, output_dir)
 
         print("Sampling with Gaussian Approximation L Kernel")
         gauss_nuts_smcs = SMCSampler(
@@ -145,9 +148,9 @@ def main():
         print(f"\nFinished sampling in {gauss_nuts_smcs.run_time} seconds")
         
         # Save output to csv
-        save_output(gauss_nuts_smcs, "gaussian_lkernel")
+        save_output(gauss_nuts_smcs, "gaussian_lkernel", i, output_dir)
 
-
+        """
         print("Sampling with Asymptotically Optimal L Kernel with Adaptive Tempering and Accept/Reject")
 
         tempered_nuts_smcs = SMCSampler(
@@ -157,7 +160,7 @@ def main():
             step_size=step_size,
             sample_proposal=sample_proposal,
             momentum_proposal=momentum_proposal,
-            lkernel="asymptotic",
+            lkernel="asymptoticLKernel",
             tempering=False,
             rng=rng,
         )
@@ -171,13 +174,13 @@ def main():
         tempered_nuts_smcs = estimate_from_tempered(target, tempered_nuts_smcs)
 
         # Save output to csv
-        save_output(tempered_nuts_smcs, "asymptotic_lkernel")
+        save_output(tempered_nuts_smcs, "asymptotic_lkernel", i, output_dir)
+        """
 
 
-
-def save_output(SMC, strategy, i):
+def save_output(SMC, strategy, i, output_dir):
         
-        path = Path.joinpath(output_dir, "strategy")
+        path = Path.joinpath(output_dir, strategy)
         path.mkdir(parents=True, exist_ok=True)
 
         mean_estimate_path = Path.joinpath(path, f"mean_estimate_{i}.csv")

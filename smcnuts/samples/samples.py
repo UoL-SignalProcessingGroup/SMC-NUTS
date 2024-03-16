@@ -33,13 +33,14 @@ class Samples:
         self.forward_kernel = forward_kernel
         self.target=target
         self.rng = rng
+        print("****")
 
         ## Set-up l-kernel if it is a function to be evaluated
         if lkernel == "GaussianApproxLKernel":
             self.lkernel = GaussianApproxLKernel(target=self.target, N=self.N)
             self.reweight_strategy = self._non_assympototic_reweight
         elif lkernel == "forwardsLKernel":
-            self.lkernel = ForwardLKernel(target=self.target, momentum_proposal=self.momentum_proposal)
+            self.lkernel = ForwardLKernel(target=self.target, momentum_proposal=self.forward_kernel.momentum_proposal)
             self.reweight_strategy = self._non_assympototic_reweight
         elif lkernel == "asymptoticLKernel":
             self.reweight_strategy = self._assymptotic_reweight
@@ -51,7 +52,7 @@ class Samples:
             self.update_temperature = self._tempering
             self.phi_old = 0.0
         else:
-            self.update_temperature =  lambda _: 1.0
+            self.update_temperature =  lambda : 1.0
             self.phi_old = 1.0
         
         # Set up initial sample properties
@@ -72,13 +73,17 @@ class Samples:
         logw_new: sample weights in log space after a proposal
         wn: Vector of normalised weights
         """
-        self.x = sample_proposal.rvs(self.N)
+        print("****")
+
+        self.x = self.sample_proposal.rvs(self.N)
         self.x_new = np.zeros([self.N, self.D])
         self.ess = 0
         self.r= np.zeros([self.N, self.D])
         self.r_new= np.zeros([self.N, self.D])
-        self.phi_new = self.update_temperature
-        self.logw = self.target.logpdf(self.x, phi=self.phi_new) - sample_proposal.logpdf(self.x)
+        self.phi_new = self.update_temperature()
+        print(self.phi_new)
+        print("self.phi_new above")
+        self.logw = self.target.logpdf(self.x, phi=self.phi_new) - self.sample_proposal.logpdf(self.x)
         self.logw_new = np.zeros([self.N])
         self.wn = np.zeros([self.N])
 
@@ -176,3 +181,7 @@ class Samples:
         args = [self.x_prime, p_logpdf_x_new_phi_old, self.phi_new]
         phi_new = self.tempering.calculate_phi(args)
         return phi_new
+    
+    def update_samples(self):
+        self.phi_old = self.phi_new
+        self.x = self.x_new

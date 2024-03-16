@@ -28,13 +28,14 @@ class SMCSampler():
         step_size: float,
         sample_proposal,
         momentum_proposal,
-        lkernel=forwardsLKernel,
+        lkernel="forwardsLKernel",
         tempering=False,
         rng = np.random.default_rng(),
     ):
         self.K = K  # Number of iterations
         self.N = N  # Number of particles
         self.target = target  # Target distribution
+        self.rng=rng
     
         # Force asymptotic forward kernels to use NUTS with accept-reject mechanism
         if(lkernel=="asymptotic"):
@@ -50,23 +51,29 @@ class SMCSampler():
             step_size = step_size,
             rng=self.rng)
 
-        # Generate the set of samples to be used in the sampling process
-        self.samples = Samples(self.N, self.target.dim, sample_proposal, self.target, forward_kernel, lkernel, tempering, rng) 
-
         # Set up arrays to be output when the sampler has finished
         self.resampled = [False] * (self.K + 1)
         self.ess = np.zeros(self.K + 1)
         self.log_likelihood = np.zeros(self.K + 1)
         self.phi = np.zeros(self.K + 1)
-        self.acceptance_rate = np.zeros(self.K)
+        self.acceptance_rate = np.zeros(self.K+1)
         self.run_time = None
 
-        if hasattr(SMC.target, "constrained_dim"):
-            self.mean_estimate = np.zeros([SMC.K + 1, SMC.target.constrained_dim])
-            self.variance_estimate = np.zeros([SMC.K + 1, SMC.target.constrained_dim])
+        self.x_saved = np.zeros([self.K + 1, self.N, self.target.dim])
+        self.logw_saved = np.zeros([self.K + 1, self.N])
+
+        # Generate the set of samples to be used in the sampling process
+        self.samples = Samples(self.N, self.target.dim, sample_proposal, self.target, forward_kernel, lkernel, tempering, rng) 
+
+        self.x_saved[0] = self.samples.x
+        self.logw_saved[0] = self.samples.logw
+
+        if hasattr(self.target, "constrained_dim"):
+            self.mean_estimate = np.zeros([self.K + 1, self.target.constrained_dim])
+            self.variance_estimate = np.zeros([self.K + 1, self.target.constrained_dim])
         else:
-            self.mean_estimate = np.zeros([SMC.K + 1, SMC.target.dim])
-            self.variance_estimate = np.zeros([SMC.K + 1, SMC.target.dim])
+            self.mean_estimate = np.zeros([self.K + 1, self.target.dim])
+            self.variance_estimate = np.zeros([self.K + 1, self.target.dim])
 
 
     def estimate(self, x, wn):
@@ -103,7 +110,10 @@ class SMCSampler():
         self.mean_estimate[k] = mean_estimate
         self.variance_estimate[k] = variance_estimate
         self.ess[k] = self.samples.ess
-        self.acceptance_rate[k] = (np.sum(np.all(self.samples.x_new != self.samples.x, axis=1)) / self.N) # Calculate number of accepted particles        
+        self.acceptance_rate[k] = (np.sum(np.all(self.samples.x_new != self.samples.x, axis=1)) / self.N) # Calculate number of accepted particles
+
+        
+      
 
     def sample(self, save_samples=False, show_progress=True):
         """
@@ -131,7 +141,7 @@ class SMCSampler():
             self.samples.propose_samples()
             
             # Temper distribution (non-tempered setting will result with \phi always equal to 1.0)
-            self.samples.update_temperature()
+            self.samples.update_temperature
             
             # Reweight samples
             self.samples.reweight()
@@ -139,6 +149,13 @@ class SMCSampler():
             # Update sampler properties for current iteration
             self.update_sampler(k, mean_estimate, variance_estimate)
             
+            # Update samples at the end of current iteration
+            self.samples.update_samples()
+
+            self.x_saved[k] = self.samples.x
+            self.logw_saved[k] = self.samples.logw
+
+
 
         # Calculate the final params based on the final proposal step  
         self.samples.normalise_weights()
