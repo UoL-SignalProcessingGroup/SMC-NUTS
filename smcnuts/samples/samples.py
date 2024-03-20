@@ -33,7 +33,7 @@ class Samples:
         self.forward_kernel = forward_kernel
         self.target=target
         self.rng = rng
-        print("****")
+    
 
         ## Set-up l-kernel if it is a function to be evaluated
         if lkernel == "GaussianApproxLKernel":
@@ -73,16 +73,13 @@ class Samples:
         logw_new: sample weights in log space after a proposal
         wn: Vector of normalised weights
         """
-        print("****")
-
         self.x = self.sample_proposal.rvs(self.N)
         self.x_new = np.zeros([self.N, self.D])
         self.ess = 0
         self.r= np.zeros([self.N, self.D])
         self.r_new= np.zeros([self.N, self.D])
         self.phi_new = self.update_temperature()
-        print(self.phi_new)
-        print("self.phi_new above")
+
         self.logw = self.target.logpdf(self.x, phi=self.phi_new) - self.sample_proposal.logpdf(self.x)
         self.logw_new = np.zeros([self.N])
         self.wn = np.zeros([self.N])
@@ -152,8 +149,8 @@ class Samples:
         """
         # Propogate particles through the forward kernel
         self.r = self.forward_kernel.momentum_proposal.rvs(self.N)
-
         grad_x = self.target.logpdfgrad(self.x, phi=self.phi_new)
+
         self.x_new, self.r_new= self.forward_kernel.rvs(self.x, self.r, grad_x, phi=self.phi_new)
 
 
@@ -185,3 +182,4 @@ class Samples:
     def update_samples(self):
         self.phi_old = self.phi_new
         self.x = self.x_new
+        self.logw = self.logw_new

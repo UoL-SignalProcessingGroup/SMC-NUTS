@@ -38,10 +38,10 @@ lkernel: Set L-kernel. Matching configurations above asymptoptic (i), forward_lk
 """
 
 #Number of Monte-Carlo runs
-N_MCMC_RUNS = 25
+N_MCMC_RUNS = 20
 
 # Sampler configurations
-N = 100 #Number of samples
+N = 200 #Number of samples
 K = 15 #Number of iterations
 
 # Specify model - CHANGE THIS TO CHANGE STAN MODEL
@@ -90,10 +90,10 @@ def main():
     else:
         step_size = 0.5
 
-    print("****")
+
     # Load Stan model
     target = StanModel(model_name=model_name, model_path=str(model_path), data_path=str(model_data_path))
-    print("HELLO")
+
 
     print(f"Model: {model_name}")
     print(f"K: {K}")
@@ -161,7 +161,7 @@ def main():
             sample_proposal=sample_proposal,
             momentum_proposal=momentum_proposal,
             lkernel="asymptoticLKernel",
-            tempering=False,
+            tempering=True,
             rng=rng,
         )
 
@@ -176,6 +176,7 @@ def main():
         # Save output to csv
         save_output(tempered_nuts_smcs, "asymptotic_lkernel", i, output_dir)
         """
+        
 
 
 def save_output(SMC, strategy, i, output_dir):

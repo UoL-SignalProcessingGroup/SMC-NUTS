@@ -104,7 +104,9 @@ class SMCSampler():
 
 
     def update_sampler(self, k, mean_estimate, variance_estimate):
-        "Update the sampler for evaluation purposes."
+        """
+            Update the sampler for evaluation purposes.
+        """
         self.phi[k] = self.samples.phi_new
         self.log_likelihood[k] = self.samples.log_likelihood
         self.mean_estimate[k] = mean_estimate
@@ -133,15 +135,16 @@ class SMCSampler():
             
             # Calculate the effective sample size
             self.samples.calculate_ess()
-            
+
             # Resample if necessary
             self.samples.resample_if_required()
             
+
             # Propose new samples
             self.samples.propose_samples()
             
             # Temper distribution (non-tempered setting will result with \phi always equal to 1.0)
-            self.samples.update_temperature
+            self.samples.update_temperature()
             
             # Reweight samples
             self.samples.reweight()
@@ -152,8 +155,9 @@ class SMCSampler():
             # Update samples at the end of current iteration
             self.samples.update_samples()
 
-            self.x_saved[k] = self.samples.x
-            self.logw_saved[k] = self.samples.logw
+            self.x_saved[k+1] = self.samples.x
+            self.logw_saved[k+1] = self.samples.logw
+            
 
 
 
