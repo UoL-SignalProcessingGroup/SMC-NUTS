@@ -41,11 +41,11 @@ lkernel: Set L-kernel. Matching configurations above asymptoptic (i), forward_lk
 """
 
 #Number of Monte-Carlo runs
-N_MCMC_RUNS = 25
+N_MCMC_RUNS = 1
 
 # Sampler configurations
 N = 100 #Number of samples
-K = 15 #Number of iterations
+K = 30 #Number of iterations
 
 # Specify model - CHANGE THIS TO CHANGE STAN MODEL
 model_name = "arma"
@@ -106,6 +106,7 @@ def main():
         
         # Fix seed for particular iterations
         rng = np.random.RandomState(10 * (i + 1))
+        initial_state = rng.get_state()
 
         # Initialize samplers
         tempering = AdaptiveTempering(N=N, target=target, alpha=0.5)
@@ -164,7 +165,7 @@ def main():
             verbose=VERBOSE,
             rng=rng,
         )
-
+        rng.set_state(initial_state)
         gauss_nuts_smcs.sample()
 
         print(f"\nFinished sampling in {gauss_nuts_smcs.run_time} seconds")
@@ -203,10 +204,12 @@ def main():
             verbose=VERBOSE,
             rng=rng,
         )
-
+        rng.set_state(initial_state)
         tempered_nuts_smcs.sample(
             save_samples=True,
         )
+
+        print(tempered_nuts_smcs.phi)
 
         print(f"\nFinished sampling in {tempered_nuts_smcs.run_time} seconds")
 
