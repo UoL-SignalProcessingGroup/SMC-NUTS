@@ -38,10 +38,10 @@ lkernel: Set L-kernel. Matching configurations above asymptoptic (i), forward_lk
 """
 
 #Number of Monte-Carlo runs
-N_MCMC_RUNS = 20
+N_MCMC_RUNS = 1
 
 # Sampler configurations
-N = 200 #Number of samples
+N = 100 #Number of samples
 K = 15 #Number of iterations
 
 # Specify model - CHANGE THIS TO CHANGE STAN MODEL
@@ -109,7 +109,7 @@ def main():
         # Initialize sampler initial distribution and momentum distribution
         sample_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
         momentum_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
-        
+       
         print("Sampling with Forward Proposal L Kernel")
         fp_nuts_smcs = SMCSampler(
             K=K,
@@ -150,7 +150,7 @@ def main():
         # Save output to csv
         save_output(gauss_nuts_smcs, "gaussian_lkernel", i, output_dir)
 
-        """
+       
         print("Sampling with Asymptotically Optimal L Kernel with Adaptive Tempering and Accept/Reject")
 
         tempered_nuts_smcs = SMCSampler(
@@ -165,17 +165,13 @@ def main():
             rng=rng,
         )
 
-        tempered_nuts_smcs.sample(
-            save_samples=True,
-        )
+        tempered_nuts_smcs.sample()
 
         print(f"\nFinished sampling in {tempered_nuts_smcs.run_time} seconds")
 
-        tempered_nuts_smcs = estimate_from_tempered(target, tempered_nuts_smcs)
-
         # Save output to csv
         save_output(tempered_nuts_smcs, "asymptotic_lkernel", i, output_dir)
-        """
+ 
         
 
 

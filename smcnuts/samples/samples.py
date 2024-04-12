@@ -2,6 +2,7 @@ import numpy as np
 from scipy.special import logsumexp
 from smcnuts.lkernel.forward_lkernel import ForwardLKernel
 from smcnuts.lkernel.gaussian_lkernel import GaussianApproxLKernel
+from smcnuts.tempering.adaptive_tempering import AdaptiveTempering
 
 class Samples:
     def __init__(self,
@@ -33,7 +34,6 @@ class Samples:
         self.forward_kernel = forward_kernel
         self.target=target
         self.rng = rng
-    
 
         ## Set-up l-kernel if it is a function to be evaluated
         if lkernel == "GaussianApproxLKernel":
@@ -49,11 +49,15 @@ class Samples:
 
         # Set up tempering if it is being used, if not set all the temperatures to be equal to 1.0  
         if tempering:
+            self.TemperingScheme = AdaptiveTempering(self.N, self.target, alpha = 0.5)
             self.update_temperature = self._tempering
             self.phi_old = 0.0
+            self.phi_new = 0.0
         else:
+            self.TemperingScheme = None
             self.update_temperature =  lambda : 1.0
             self.phi_old = 1.0
+            self.phi_new = 1.0
         
         # Set up initial sample properties
         self.initialise_samples()
@@ -74,13 +78,15 @@ class Samples:
         wn: Vector of normalised weights
         """
         self.x = self.sample_proposal.rvs(self.N)
-        self.x_new = np.zeros([self.N, self.D])
+        self.x_new = np.copy(self.x)
         self.ess = 0
         self.r= np.zeros([self.N, self.D])
         self.r_new= np.zeros([self.N, self.D])
         self.phi_new = self.update_temperature()
+        self.phi_old = self.phi_new
 
         self.logw = self.target.logpdf(self.x, phi=self.phi_new) - self.sample_proposal.logpdf(self.x)
+        
         self.logw_new = np.zeros([self.N])
         self.wn = np.zeros([self.N])
 
@@ -111,6 +117,10 @@ class Samples:
 
 
     def resample_if_required(self):
+        """
+        Resample if effective sample size is below the threshold (hard coded to 1/2)
+        Returns true if resample required and performs the resampling, else returns false
+        """
         if(self.ess < self.N / 2):
             self.x, self.logw = self._resample(self.x,  self.wn, self.log_likelihood)
             return True
@@ -153,18 +163,34 @@ class Samples:
 
         self.x_new, self.r_new= self.forward_kernel.rvs(self.x, self.r, grad_x, phi=self.phi_new)
 
-
     def reweight(self):
+        """
+        Calculate the new weights dependding on the reweighting strategy being used
+        
+        """
         self.logw_new = self.reweight_strategy()
 
             
     def _assymptotic_reweight(self):
+        """
+        Reweight strategy for the asymptotic L-kernel 
+
+        returns:
+        New weights
+        
+        """
         p_logpdf_x_phi_old = self.target.logpdf(self.x, phi=self.phi_old)
         p_logpdf_x_phi_new = self.target.logpdf(self.x, phi=self.phi_new)
 
         return self.logw + p_logpdf_x_phi_new - p_logpdf_x_phi_old
 
     def _non_assympototic_reweight(self):
+        """
+        Reweight strategy for the non-asymptotic L-kernel 
+
+        returns:
+        New weights
+        """
         p_logpdf_x = self.target.logpdf(self.x)
         p_logpdf_xnew = self.target.logpdf(self.x_new)
 
@@ -174,12 +200,25 @@ class Samples:
         return self.logw + p_logpdf_xnew - p_logpdf_x + lkernel_logpdf - q_logpdf
     
     def _tempering(self):
-        p_logpdf_x_new_phi_old = self.target.logpdf(self.x_new, phi=self.phi_new)
-        args = [self.x_prime, p_logpdf_x_new_phi_old, self.phi_new]
-        phi_new = self.tempering.calculate_phi(args)
+        """
+        Reweight strategy for the asymptotic L-kernel 
+
+        returns:
+        New weights
+        
+        """
+        p_logpdf_x_new_phi_old = self.target.logpdf(self.x_new, phi=self.phi_old)
+        args = [self.x_new, p_logpdf_x_new_phi_old, self.phi_old]        
+        phi_new = self.TemperingScheme.calculate_phi(args)
+        self.phi_new = phi_new
+        
         return phi_new
     
     def update_samples(self):
+        """
+        Update the samples for the next iteration
+        
+        """
         self.phi_old = self.phi_new
         self.x = self.x_new
         self.logw = self.logw_new

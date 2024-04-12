@@ -38,14 +38,12 @@ class NUTSProposal_with_AccRej(NUTSProposal):
         """
 
         x_prime, r_prime = super(NUTSProposal_with_AccRej, self).rvs(x_cond, r_cond, grad_x, phi)
-
+   
         # Apply an accept-reject step for the assymptoptic L-kernel. 
         accepted = np.array([False] * len(x_prime))
         for i in range(len(x_prime)):
             accepted[i] = hmc_accept_reject(self.target.logpdf, x_cond[i], x_prime[i], r_cond[i], r_prime[i], rng=self.rng)
         x_prime[~accepted] = x_cond[~accepted]
         r_prime[~accepted] = r_cond[~accepted]
-
-
 
         return x_prime, r_prime

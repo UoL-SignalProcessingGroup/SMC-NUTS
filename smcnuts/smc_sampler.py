@@ -28,7 +28,7 @@ class SMCSampler():
         step_size: float,
         sample_proposal,
         momentum_proposal,
-        lkernel="forwardsLKernel",
+        lkernel,
         tempering=False,
         rng = np.random.default_rng(),
     ):
@@ -36,9 +36,10 @@ class SMCSampler():
         self.N = N  # Number of particles
         self.target = target  # Target distribution
         self.rng=rng
-    
+        self.lkernel = lkernel
+
         # Force asymptotic forward kernels to use NUTS with accept-reject mechanism
-        if(lkernel=="asymptotic"):
+        if(lkernel=="asymptoticLKernel"):
             forward_kernel = NUTSProposal_with_AccRej(
             target=self.target,
             momentum_proposal=momentum_proposal,
@@ -107,17 +108,51 @@ class SMCSampler():
         """
             Update the sampler for evaluation purposes.
         """
-        self.phi[k] = self.samples.phi_new
+        
         self.log_likelihood[k] = self.samples.log_likelihood
         self.mean_estimate[k] = mean_estimate
         self.variance_estimate[k] = variance_estimate
         self.ess[k] = self.samples.ess
         self.acceptance_rate[k] = (np.sum(np.all(self.samples.x_new != self.samples.x, axis=1)) / self.N) # Calculate number of accepted particles
 
-        
-      
+        self.x_saved[k+1] = self.samples.x
+        self.logw_saved[k+1] = self.samples.logw
 
-    def sample(self, save_samples=False, show_progress=True):
+        
+    def estimate_from_tempered(self):
+        """ Calculate adjusted weights, and form estimates of all past simulated samples.
+
+        This function calculates the adjusted importance weights `ess_logw` for all samples. The
+        weights are defined as \pi(x) / \pi(x, \phi_k) where \pi(x) is the target density and
+        \pi(x, \phi_k) is the density of the kth proposal. The adjusted weights are then used to
+        form estimates of the mean and variance of the target density.
+        """
+
+        ess_logw = np.zeros([self.K+1, self.N])
+
+        for k in range(self.K+1):
+            # Using weights calculated in the the sampler draw a set a set of samples
+            self.samples.logw = self.logw_saved[k]
+            self.samples.normalise_weights()
+            wn = self.samples.wn
+            
+            z = np.linspace(0, self.N-1, self.N, dtype=int)
+            z_new = self.rng.choice(z, self.N, p=wn)
+            x = self.x_saved[k].copy()[z_new]
+
+            # Calculate importance weights and normalise
+            ess_logw[k] = self.target.logpdf(x) - self.target.logpdf(x, phi=self.phi[k])
+            self.samples.logw = ess_logw[k]
+            
+            self.samples.normalise_weights()
+            ess_wn = self.samples.wn
+            
+            # Calculate mean and variance estimates
+            self.mean_estimate[k], self.variance_estimate[k] = self.estimate(x, ess_wn)
+
+
+
+    def sample(self, show_progress=True):
         """
         Sample from the target distribution using an SMC sampler.
         """
@@ -127,6 +162,8 @@ class SMCSampler():
         # Main sampling loop
         for k in tqdm(range(self.K), desc=f"NUTS Sampling", disable=not show_progress):
             
+            self.phi[k] = self.samples.phi_new
+
             # Normalise the weights
             self.samples.normalise_weights()
 
@@ -138,7 +175,6 @@ class SMCSampler():
 
             # Resample if necessary
             self.samples.resample_if_required()
-            
 
             # Propose new samples
             self.samples.propose_samples()
@@ -154,18 +190,18 @@ class SMCSampler():
             
             # Update samples at the end of current iteration
             self.samples.update_samples()
-
-            self.x_saved[k+1] = self.samples.x
-            self.logw_saved[k+1] = self.samples.logw
             
-
-
-
         # Calculate the final params based on the final proposal step  
         self.samples.normalise_weights()
         mean_estimate, variance_estimate = self.estimate(self.samples.x, self.samples.wn)
         self.samples.calculate_ess()
+
         # Update sampler properties for the final proposal step
         self.update_sampler(self.K, mean_estimate, variance_estimate)
+        self.phi[self.K] = self.samples.phi_new
+        
+        # If using the asymptotic approach we calculate the estimates using the adjusted tempered weights
+        if(self.lkernel=="asymptoticLKernel"):
+            self.estimate_from_tempered()
 
         self.run_time = time() - start_time
