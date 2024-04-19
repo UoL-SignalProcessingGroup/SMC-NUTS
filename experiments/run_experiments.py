@@ -41,11 +41,11 @@ lkernel: Set L-kernel. Matching configurations above asymptoptic (i), forward_lk
 """
 
 #Number of Monte-Carlo runs
-N_MCMC_RUNS = 1
+N_MCMC_RUNS = 25
 
 # Sampler configurations
 N = 100 #Number of samples
-K = 30 #Number of iterations
+K = 15 #Number of iterations
 
 # Specify model - CHANGE THIS TO CHANGE STAN MODEL
 model_name = "arma"
@@ -208,8 +208,6 @@ def main():
         tempered_nuts_smcs.sample(
             save_samples=True,
         )
-
-        print(tempered_nuts_smcs.phi)
 
         print(f"\nFinished sampling in {tempered_nuts_smcs.run_time} seconds")
 
