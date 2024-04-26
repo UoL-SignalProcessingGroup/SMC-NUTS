@@ -1,15 +1,13 @@
 from time import time
-
 import autograd.numpy as np
 from tqdm import tqdm
-import warnings
-from scipy.special import logsumexp
-
-from smcnuts.tempering.adaptive_tempering import AdaptiveTempering
+from smcnuts.samples.samples import Samples
+from smcnuts.proposal.nuts_acc_rej import NUTSProposal_with_AccRej
+from smcnuts.proposal.nuts import NUTSProposal
 
 
 class SMCSampler():
-    """Hamiltonian Monte Carlo SMC Sampler
+    """Hamiltonian Monte Carlo (NUTS) SMC Sampler
 
     An SMC sampler that uses Hamiltonian Monte Carlo (HMC) methods to sample
     from the target distribution of interest.
@@ -18,51 +16,59 @@ class SMCSampler():
         K: Number of iterations.
         N: Number of particles.
         target: Target distribution of interest.
-        forward_kernel: Forward kernel used to propagate samples.
         sample_proposal: Distribution to draw the initial samples from (q0).
         lkernel: Approximation method for the optimum L-kernel.
     """
-
+    
     def __init__(
         self,
         K: int,
         N: int,
         target,
-        forward_kernel,
+        step_size: float,
         sample_proposal,
-        lkernel="asymptotic",
-        tempering=None,
-        verbose: bool = False,
+        momentum_proposal,
+        lkernel,
+        tempering=False,
         rng = np.random.default_rng(),
     ):
         self.K = K  # Number of iterations
         self.N = N  # Number of particles
         self.target = target  # Target distribution
-        self.forward_kernel = forward_kernel  # Forward kernel distribution
-        self.sample_proposal = sample_proposal  # Initial sample proposal distribution
-        self.tempering = tempering  # Tempering scheme
-        self.lkernel = lkernel  # L-kernel distribution
- 
-        self.verbose = verbose  # Show stdout
-        self.rng = rng  # Random number generator
+        self.rng=rng
+        self.lkernel = lkernel
 
-        if self.lkernel == "asymptotic" and self.forward_kernel.accept_reject == False:
-            warnings.warn("Warning: Accept-reject is false and therefore not a valid MCMC kernel. Setting accept-reject to true.")
-            self.forward_kernel.accept_reject = True
+        # Force asymptotic forward kernels to use NUTS with accept-reject mechanism
+        if(lkernel=="asymptoticLKernel"):
+            forward_kernel = NUTSProposal_with_AccRej(
+            target=self.target,
+            momentum_proposal=momentum_proposal,
+            step_size = step_size,
+            rng=self.rng)        
+        else:
+            forward_kernel = NUTSProposal(
+            target=self.target,
+            momentum_proposal=momentum_proposal,
+            step_size = step_size,
+            rng=self.rng)
 
-        if hasattr(self.forward_kernel, "logpdf") == False:
-            raise Exception("Foward kernel has no function called logpdf")
-        
-        if hasattr(self.forward_kernel, "rvs") == False:
-            raise Exception("Foward kernel has no function called rvs")
+        # Set up arrays to be output when the sampler has finished
+        self.resampled = [False] * (self.K + 1)
+        self.ess = np.zeros(self.K + 1)
+        self.log_likelihood = np.zeros(self.K + 1)
+        self.phi = np.zeros(self.K + 1)
+        self.acceptance_rate = np.zeros(self.K+1)
+        self.run_time = None
 
-        if hasattr(self.forward_kernel.momentum_proposal, "logpdf") == False:
-            raise Exception("Momentum proposal has no function called logpdf")
+        self.x_saved = np.zeros([self.K + 1, self.N, self.target.dim])
+        self.logw_saved = np.zeros([self.K + 1, self.N])
 
-        if hasattr(self.forward_kernel.momentum_proposal, "rvs") == False:
-            raise Exception("Momentum proposal has no function called rvs")
+        # Generate the set of samples to be used in the sampling process
+        self.samples = Samples(self.N, self.target.dim, sample_proposal, self.target, forward_kernel, lkernel, tempering, rng) 
 
-        # Hold etimated quantities and diagnostic metrics
+        self.x_saved[0] = self.samples.x
+        self.logw_saved[0] = self.samples.logw
+
         if hasattr(self.target, "constrained_dim"):
             self.mean_estimate = np.zeros([self.K + 1, self.target.constrained_dim])
             self.variance_estimate = np.zeros([self.K + 1, self.target.constrained_dim])
@@ -70,77 +76,6 @@ class SMCSampler():
             self.mean_estimate = np.zeros([self.K + 1, self.target.dim])
             self.variance_estimate = np.zeros([self.K + 1, self.target.dim])
 
-        self.resampled = [False] * (self.K + 1)
-        self.ess = np.zeros(self.K + 1)
-        self.log_likelihood = np.zeros(self.K + 1)
-        self.phi = np.zeros(self.K + 1)
-        self.acceptance_rate = np.zeros(self.K)
-        self.run_time = None
-
-    def normalise_weights(self, logw):
-        """
-        Normalises the sample weights
-
-        Args:
-            logw: A list of sample weights on the log scale
-
-        Returns:
-            A list of normalised weights
-
-        """
-
-        index = ~np.isneginf(logw)
-
-        log_likelihood = logsumexp(logw[index])
-
-        # Normalise the weights
-        wn = np.zeros_like(logw)
-        wn[index] = np.exp(logw[index] - log_likelihood)
-
-        return wn, log_likelihood  # type: ignore
-
-    def calculate_ess(self, wn):
-        """
-        Calculate the effective sample size using the normalised
-        sample weights.
-
-        Args:
-            wn: A list of normalised sample weights
-
-        Return:
-            The effective sample size
-        """
-
-        ess = 1 / np.sum(np.square(wn))
-
-        return ess
-
-    def resample(self, x, wn, log_likelihood):
-        """
-        Resamples samples and their weights from the specified indexes. If running the SMC sampler
-        in parallel using MPI, we resample locally on rank zero and then scatter the resampled
-        samples to the other ranks.
-
-        Args:
-            x: A list of samples to resample
-            wn: A list of normalise sample weights to resample
-            indexes: A list of the indexes of samples and weights to resample
-
-        Returns:
-            x_new: A list of resampled samples
-            logw_new: A list of resampled weights
-        """
-
-        # Resample x
-        i = np.linspace(0, self.N-1, self.N, dtype=int)
-        i_new = self.rng.choice(i, self.N, p=wn)
-        x_new = x[i_new]
-
-        # Determine new weights
-        # logw_new = np.log(np.ones(self.N_local)) - self.N_local
-        logw_new = (np.ones(self.N) * log_likelihood) - np.log(self.N)
-
-        return x_new, logw_new
 
     def estimate(self, x, wn):
         """
@@ -168,131 +103,105 @@ class SMCSampler():
 
         return mean, var
 
-    def sample(
-        self,
-        save_samples=False,
-        show_progress=True,
-    ):
+
+    def update_sampler(self, k, mean_estimate, variance_estimate):
+        """
+            Update the sampler for evaluation purposes.
+        """
+        
+        self.log_likelihood[k] = self.samples.log_likelihood
+        self.mean_estimate[k] = mean_estimate
+        self.variance_estimate[k] = variance_estimate
+        self.ess[k] = self.samples.ess
+        self.acceptance_rate[k] = (np.sum(np.all(self.samples.x_new != self.samples.x, axis=1)) / self.N) # Calculate number of accepted particles
+
+        self.x_saved[k+1] = self.samples.x
+        self.logw_saved[k+1] = self.samples.logw
+
+        
+    def estimate_from_tempered(self):
+        """ Calculate adjusted weights, and form estimates of all past simulated samples.
+
+        This function calculates the adjusted importance weights `ess_logw` for all samples. The
+        weights are defined as \pi(x) / \pi(x, \phi_k) where \pi(x) is the target density and
+        \pi(x, \phi_k) is the density of the kth proposal. The adjusted weights are then used to
+        form estimates of the mean and variance of the target density.
+        """
+
+        ess_logw = np.zeros([self.K+1, self.N])
+
+        for k in range(self.K+1):
+            # Using weights calculated in the the sampler draw a set a set of samples
+            self.samples.logw = self.logw_saved[k]
+            self.samples.normalise_weights()
+            wn = self.samples.wn
+            
+            z = np.linspace(0, self.N-1, self.N, dtype=int)
+            z_new = self.rng.choice(z, self.N, p=wn)
+            x = self.x_saved[k].copy()[z_new]
+
+            # Calculate importance weights and normalise
+            ess_logw[k] = self.target.logpdf(x) - self.target.logpdf(x, phi=self.phi[k])
+            self.samples.logw = ess_logw[k]
+            
+            self.samples.normalise_weights()
+            ess_wn = self.samples.wn
+            
+            # Calculate mean and variance estimates
+            self.mean_estimate[k], self.variance_estimate[k] = self.estimate(x, ess_wn)
+
+
+
+    def sample(self, show_progress=True):
         """
         Sample from the target distribution using an SMC sampler.
         """
 
         start_time = time()
 
-        # Tensors to hold samples drawn at each iteration
-        if save_samples:
-            self.x_saved = np.zeros([self.K + 1, self.N, self.target.dim])
-            self.logw_saved = np.zeros([self.K + 1, self.N])
-
-        # Draw initial samples from the sample proposal distribution
-        x = self.sample_proposal.rvs(self.N)
-        x_new = np.zeros([self.N, self.target.dim])
-
-        # Tensors to hold momenta, gradients and number of leapfrog steps
-        r_new= np.zeros([self.N, self.target.dim])
-        grad_x = np.zeros([self.N, self.target.dim])
-
-        # Calculate the initial temperature
-        phi_old, phi_new = (0.0, 0.0) if self.tempering else (1.0, 1.0)
-        if self.tempering:
-            if isinstance(self.tempering, AdaptiveTempering):
-                p_logpdf_x_phi = self.target.logpdf(x, phi=phi_old)
-                args = [x, p_logpdf_x_phi, phi_old]
-            phi_new = self.tempering.calculate_phi(args)
-            if self.verbose:
-                print(f"Initial temperature: {phi_new}")
-
-        # Calculate the initial weights
-        logw = np.zeros(self.N)
-        logw_new = np.zeros(self.N)
-        p_logpdf_x = self.target.logpdf(x, phi=phi_new)
-        q0_logpdf_x = self.sample_proposal.logpdf(x)
-        logw = p_logpdf_x - q0_logpdf_x
-
-        # Save initial samples
-        if save_samples:
-            self.x_saved[0] = x
-            self.logw_saved[0] = logw
-
         # Main sampling loop
         for k in tqdm(range(self.K), desc=f"NUTS Sampling", disable=not show_progress):
-            # Record new temperature
-            self.phi[k] = phi_new
+            
+            self.phi[k] = self.samples.phi_new
 
-            # Normalise importance weights and calculate the log likelihood
-            wn, self.log_likelihood[k] = self.normalise_weights(logw)
+            # Normalise the weights
+            self.samples.normalise_weights()
 
-            # Estimate the mean and variance of the target distribution
-            self.mean_estimate[k], self.variance_estimate[k] = self.estimate(x, wn)
+            # Form estimates
+            mean_estimate, variance_estimate = self.estimate(self.samples.x, self.samples.wn)
+            
+            # Calculate the effective sample size
+            self.samples.calculate_ess()
 
-            # Calculate the effective sample size and resample if necessary
-            self.ess[k] = self.calculate_ess(wn)
-            if self.ess[k] < self.N / 2:
-                if self.verbose:
-                    print(f"Resampling iteration {k} with ESS {self.ess[k]}")
-                self.resampled[k] = True
-                x, logw = self.resample(x, wn, self.log_likelihood[k])
+            # Resample if necessary
+            self.samples.resample_if_required()
 
-            # Propogate particles through the forward kernel
-            r = self.forward_kernel.momentum_proposal.rvs(self.N)
+            # Propose new samples
+            self.samples.propose_samples()
+            
+            # Temper distribution (non-tempered setting will result with \phi always equal to 1.0)
+            self.samples.update_temperature()
+            
+            # Reweight samples
+            self.samples.reweight()
+            
+            # Update sampler properties for current iteration
+            self.update_sampler(k, mean_estimate, variance_estimate)
+            
+            # Update samples at the end of current iteration
+            self.samples.update_samples()
+            
+        # Calculate the final params based on the final proposal step  
+        self.samples.normalise_weights()
+        mean_estimate, variance_estimate = self.estimate(self.samples.x, self.samples.wn)
+        self.samples.calculate_ess()
 
-            grad_x = self.target.logpdfgrad(x, phi=phi_new)
-            x_new, r_new= self.forward_kernel.rvs(x, r, grad_x, phi=phi_new)
-
-            # Calculate number of accepted particles
-            self.acceptance_rate[k] = (
-                np.sum(np.all(x_new != x, axis=1)) / self.N
-            )
-
-            # Calculate the new temperature
-            if self.tempering:
-                phi_old = phi_new
-                if isinstance(self.tempering, AdaptiveTempering):
-                    p_logpdf_x_new_phi_old = self.target.logpdf(x_new, phi=phi_new)
-                    args = [x_new, p_logpdf_x_new_phi_old, phi_new]
-                phi_new = self.tempering.calculate_phi(args)
-                if self.verbose:
-                    print(f"Temperature at iteration {k}: {phi_new}")
-
-            # Calculate the new weights
-            if self.lkernel == "asymptotic":
-                if self.tempering:
-                    # Evaluate the tempered target distribution
-                    p_logpdf_x_phi_old = self.target.logpdf(x, phi=phi_old)
-                    p_logpdf_x_phi_new = self.target.logpdf(x, phi=phi_new)
-
-                    logw_new = logw + p_logpdf_x_phi_new - p_logpdf_x_phi_old
-                else:
-                    logw_new = logw
-            else:
-                # Evaluate the target distribution, l kernel and forward kernel
-                p_logpdf_x = self.target.logpdf(x)
-                p_logpdf_xnew = self.target.logpdf(x_new)
-
-                lkernel_logpdf = self.lkernel.calculate_L(r_new, x_new)
-                q_logpdf = self.forward_kernel.logpdf(r)
-
-                logw_new = (
-                    logw + p_logpdf_xnew - p_logpdf_x + lkernel_logpdf - q_logpdf
-                )
-
-            # Update x and logw
-            x = x_new.copy()
-            logw = logw_new.copy()
-
-            if save_samples:
-                self.x_saved[k + 1] = x_new.copy()
-                self.logw_saved[k + 1] = logw_new.copy()
-
-        # Normalise importance weights and calculate the log likelihood
-        wn, self.log_likelihood[self.K] = self.normalise_weights(logw)
-
-        # Estimate the mean and variance of the target distribution
-        self.mean_estimate[self.K], self.variance_estimate[self.K] = self.estimate(x, wn)
-
-        # Calculate the effective sample size and resample if necessary
-        self.ess[self.K] = self.calculate_ess(wn)
-
-        self.phi[self.K] = phi_new
+        # Update sampler properties for the final proposal step
+        self.update_sampler(self.K, mean_estimate, variance_estimate)
+        self.phi[self.K] = self.samples.phi_new
+        
+        # If using the asymptotic approach we calculate the estimates using the adjusted tempered weights
+        if(self.lkernel=="asymptoticLKernel"):
+            self.estimate_from_tempered()
 
         self.run_time = time() - start_time

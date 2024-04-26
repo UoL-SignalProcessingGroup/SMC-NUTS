@@ -5,13 +5,10 @@ import autograd.numpy as np
 import seaborn as sns
 from scipy.stats import multivariate_normal
 
-from smcnuts.lkernel.forward_lkernel import ForwardLKernel
-from smcnuts.lkernel.gaussian_lkernel import GaussianApproxLKernel
-from smcnuts.proposal.nuts import NUTSProposal
 from smcnuts.smc_sampler import SMCSampler
-from smcnuts.tempering.adaptive_tempering import AdaptiveTempering
 from smcnuts.model.bridgestan import StanModel
 from smcnuts.postprocessing.ess_tempering import estimate_from_tempered
+
 
 sns.set_style("whitegrid")
 
@@ -41,7 +38,7 @@ lkernel: Set L-kernel. Matching configurations above asymptoptic (i), forward_lk
 """
 
 #Number of Monte-Carlo runs
-N_MCMC_RUNS = 25
+N_MCMC_RUNS = 1
 
 # Sampler configurations
 N = 100 #Number of samples
@@ -93,8 +90,10 @@ def main():
     else:
         step_size = 0.5
 
+
     # Load Stan model
     target = StanModel(model_name=model_name, model_path=str(model_path), data_path=str(model_data_path))
+
 
     print(f"Model: {model_name}")
     print(f"K: {K}")
@@ -107,126 +106,90 @@ def main():
         # Fix seed for particular iterations
         rng = np.random.RandomState(10 * (i + 1))
 
-        # Initialize samplers
-        tempering = AdaptiveTempering(N=N, target=target, alpha=0.5)
+        # Initialize sampler initial distribution and momentum distribution
         sample_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
         momentum_proposal = multivariate_normal(mean=np.zeros(target.dim), cov=np.eye(target.dim), seed=rng)
-        
-
-        forward_kernel = NUTSProposal(
-            target=target,
-            momentum_proposal=momentum_proposal,
-            step_size = step_size,
-            rng=rng,
-        )
-
+       
         print("Sampling with Forward Proposal L Kernel")
-        forward_lkernel = ForwardLKernel(target=target, momentum_proposal=momentum_proposal)
         fp_nuts_smcs = SMCSampler(
             K=K,
             N=N,
             target=target,
-            forward_kernel=forward_kernel,
+            step_size=step_size,
             sample_proposal=sample_proposal,
-            lkernel=forward_lkernel,
-            verbose=VERBOSE,
+            momentum_proposal=momentum_proposal,
+            lkernel="forwardsLKernel",
+            tempering=False,
             rng=rng,
         )
 
         fp_nuts_smcs.sample()
 
         print(f"\nFinished sampling in {fp_nuts_smcs.run_time} seconds")
-
-        fp_output_dir = Path.joinpath(output_dir, "forward_lkernel")
-        fp_output_dir.mkdir(parents=True, exist_ok=True)
-
+        
         # Save output to csv
-        mean_estimate_path = Path.joinpath(fp_output_dir, f"mean_estimate_{i}.csv")
-        np.savetxt(mean_estimate_path, fp_nuts_smcs.mean_estimate, delimiter=",")
-        var_estimate_path = Path.joinpath(fp_output_dir, f"var_estimate_{i}.csv")
-        np.savetxt(var_estimate_path, fp_nuts_smcs.variance_estimate, delimiter=",")
-        ess_path = Path.joinpath(fp_output_dir, f"ess_{i}.csv")
-        np.savetxt(ess_path, fp_nuts_smcs.ess, delimiter=",")
-        phi_path = Path.joinpath(fp_output_dir, f"phi_{i}.csv")
-        np.savetxt(phi_path, fp_nuts_smcs.phi, delimiter=",")
-        acceptance_rate_path = Path.joinpath(fp_output_dir, f"acceptance_rate_{i}.csv")
-        np.savetxt(acceptance_rate_path, fp_nuts_smcs.acceptance_rate, delimiter=",")
+        save_output(fp_nuts_smcs, "forward_lkernel", i, output_dir)
 
         print("Sampling with Gaussian Approximation L Kernel")
-        gauss_lkernel = GaussianApproxLKernel(target=target, N=N)
         gauss_nuts_smcs = SMCSampler(
             K=K,
             N=N,
             target=target,
-            forward_kernel=forward_kernel,
+            step_size=step_size,
             sample_proposal=sample_proposal,
-            lkernel=gauss_lkernel,
-            verbose=VERBOSE,
+            momentum_proposal=momentum_proposal,
+            lkernel="GaussianApproxLKernel",
+            tempering=False,
             rng=rng,
         )
 
         gauss_nuts_smcs.sample()
 
         print(f"\nFinished sampling in {gauss_nuts_smcs.run_time} seconds")
-
-        gauss_output_dir = Path.joinpath(output_dir, "gaussian_lkernel")
-        gauss_output_dir.mkdir(parents=True, exist_ok=True)
-
+        
         # Save output to csv
-        mean_estimate_path = Path.joinpath(gauss_output_dir, f"mean_estimate_{i}.csv")
-        np.savetxt(mean_estimate_path, gauss_nuts_smcs.mean_estimate, delimiter=",")
-        var_estimate_path = Path.joinpath(gauss_output_dir, f"var_estimate_{i}.csv")
-        np.savetxt(var_estimate_path, gauss_nuts_smcs.variance_estimate, delimiter=",")
-        ess_path = Path.joinpath(gauss_output_dir, f"ess_{i}.csv")
-        np.savetxt(ess_path, gauss_nuts_smcs.ess, delimiter=",")
-        phi_path = Path.joinpath(gauss_output_dir, f"phi_{i}.csv")
-        np.savetxt(phi_path, gauss_nuts_smcs.phi, delimiter=",")
-        acceptance_rate_path = Path.joinpath(gauss_output_dir, f"acceptance_rate_{i}.csv")
-        np.savetxt(acceptance_rate_path, gauss_nuts_smcs.acceptance_rate, delimiter=",")
+        save_output(gauss_nuts_smcs, "gaussian_lkernel", i, output_dir)
 
+       
         print("Sampling with Asymptotically Optimal L Kernel with Adaptive Tempering and Accept/Reject")
-        forward_kernel = NUTSProposal(
-            target=target,
-            momentum_proposal=momentum_proposal,
-            step_size = step_size,
-            accept_reject=True,
-            rng=rng,
-        )
+
         tempered_nuts_smcs = SMCSampler(
             K=K,
             N=N,
             target=target,
-            forward_kernel=forward_kernel,
+            step_size=step_size,
             sample_proposal=sample_proposal,
-            tempering=tempering,
-            lkernel="asymptotic",
-            verbose=VERBOSE,
+            momentum_proposal=momentum_proposal,
+            lkernel="asymptoticLKernel",
+            tempering=True,
             rng=rng,
         )
 
-        tempered_nuts_smcs.sample(
-            save_samples=True,
-        )
+        tempered_nuts_smcs.sample()
 
         print(f"\nFinished sampling in {tempered_nuts_smcs.run_time} seconds")
 
-        tempered_nuts_smcs = estimate_from_tempered(target, tempered_nuts_smcs)
-
-        tempered_output_dir = Path.joinpath(output_dir, "asymptotic_lkernel")
-        tempered_output_dir.mkdir(parents=True, exist_ok=True)
-
         # Save output to csv
-        mean_estimate_path = Path.joinpath(tempered_output_dir, f"mean_estimate_{i}.csv")
-        np.savetxt(mean_estimate_path, tempered_nuts_smcs.mean_estimate, delimiter=",")
-        var_estimate_path = Path.joinpath(tempered_output_dir, f"var_estimate_{i}.csv")
-        np.savetxt(var_estimate_path, tempered_nuts_smcs.variance_estimate, delimiter=",")
-        ess_path = Path.joinpath(tempered_output_dir, f"ess_{i}.csv")
-        np.savetxt(ess_path, tempered_nuts_smcs.ess, delimiter=",")
-        phi_path = Path.joinpath(tempered_output_dir, f"phi_{i}.csv")
-        np.savetxt(phi_path, tempered_nuts_smcs.phi, delimiter=",")
-        acceptance_rate_path = Path.joinpath(tempered_output_dir, f"acceptance_rate_{i}.csv")
-        np.savetxt(acceptance_rate_path, tempered_nuts_smcs.acceptance_rate, delimiter=",")
+        save_output(tempered_nuts_smcs, "asymptotic_lkernel", i, output_dir)
+ 
+        
 
+
+def save_output(SMC, strategy, i, output_dir):
+        
+        path = Path.joinpath(output_dir, strategy)
+        path.mkdir(parents=True, exist_ok=True)
+
+        mean_estimate_path = Path.joinpath(path, f"mean_estimate_{i}.csv")
+        np.savetxt(mean_estimate_path, SMC.mean_estimate, delimiter=",")
+        var_estimate_path = Path.joinpath(path, f"var_estimate_{i}.csv")
+        np.savetxt(var_estimate_path, SMC.variance_estimate, delimiter=",")
+        ess_path = Path.joinpath(path, f"ess_{i}.csv")
+        np.savetxt(ess_path, SMC.ess, delimiter=",")
+        phi_path = Path.joinpath(path, f"phi_{i}.csv")
+        np.savetxt(phi_path, SMC.phi, delimiter=",")
+        acceptance_rate_path = Path.joinpath(path, f"acceptance_rate_{i}.csv")
+        np.savetxt(acceptance_rate_path, SMC.acceptance_rate, delimiter=",")
 
 if __name__ == "__main__":
     main()
