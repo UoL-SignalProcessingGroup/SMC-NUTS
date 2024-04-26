@@ -62,7 +62,7 @@ class NUTSProposal:
         if self.accept_reject:
             accepted = np.array([False] * len(x_prime))
             for i in range(len(x_prime)):
-                accepted[i] = hmc_accept_reject(self.target.logpdf, x_cond[i], x_prime[i], r_cond[i], r_prime[i], rng=self.rng)
+                accepted[i] = hmc_accept_reject(self.target.logpdf, x_cond[i], x_prime[i], r_cond[i], r_prime[i], phi=phi, rng=self.rng)
             x_prime[~accepted] = x_cond[~accepted]
             r_prime[~accepted] = r_cond[~accepted]
         
