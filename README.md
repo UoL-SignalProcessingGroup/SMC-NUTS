@@ -61,6 +61,8 @@ At present there are three strategies define the L-kernel in the SMC sampler
 
 Please consult `experiments/run_experiments.py` to see examples of how this may be implemented in practice.
 
+When using the asymptoptic L-kernel. The Stan model requires a temperature parameter (phi) in order to change the model with a tempered distribution. Consult examples to see instances of how this is done. 
+
 ## Future updates
 - Adaptive learning of both the mass matrix and step-size utilised by the sampler.
 
