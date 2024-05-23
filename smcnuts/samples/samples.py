@@ -16,7 +16,7 @@ class Samples:
                 rng) -> None:
 
         """
-        Samples is an object that contains the set of SMC samples and their associated methods.
+        Description: Samples is an object that contains the set of SMC samples and their associated methods.
 
         params:
         N: The number of samples.
@@ -65,7 +65,7 @@ class Samples:
 
     def initialise_samples(self):
         """
-        Initialise the properties of the samples and allocate arrarys
+        Description: Initialise the properties of the samples and allocate arrarys
         
         x: The location of samples in the target space
         x_new: The location of samples in the target space after a proposal step 
@@ -93,7 +93,7 @@ class Samples:
     
     def normalise_weights(self):
         """
-        Normalises the sample weights in log scale
+        Description: Normalises the sample weights in log scale
         """
 
         index = ~np.isneginf(self.logw)
@@ -110,7 +110,7 @@ class Samples:
 
     def calculate_ess(self):
         """
-        Calculate the effective sample size using the normalised
+        Description: Calculate the effective sample size using the normalised
         sample weights.
         """
         self.ess = 1 / np.sum(np.square(self.wn))
@@ -118,7 +118,7 @@ class Samples:
 
     def resample_if_required(self):
         """
-        Resample if effective sample size is below the threshold (hard coded to 1/2)
+        Description: Resample if effective sample size is below the threshold (hard coded to 1/2)
         Returns true if resample required and performs the resampling, else returns false
         """
         if(self.ess < self.N / 2):
@@ -129,7 +129,7 @@ class Samples:
 
     def _resample(self, x, wn, log_likelihood):
         """
-        Resamples samples and their weights from the specified indexes.
+        Description: Resamples samples and their weights from the specified indexes.
 
         Args:
             x: A list of samples to resample
@@ -154,18 +154,18 @@ class Samples:
 
     def propose_samples(self):
         """
-        Run proposal distribution to generate a new set of samples
+        Description: Run proposal distribution to generate a new set of samples
         
         """
         # Propogate particles through the forward kernel
         self.r = self.forward_kernel.momentum_proposal.rvs(self.N)
         grad_x = self.target.logpdfgrad(self.x, phi=self.phi_new)
-
         self.x_new, self.r_new= self.forward_kernel.rvs(self.x, self.r, grad_x, phi=self.phi_new)
-
+        
+        
     def reweight(self):
         """
-        Calculate the new weights dependding on the reweighting strategy being used
+        Description: Calculate the new weights dependding on the reweighting strategy being used
         
         """
         self.logw_new = self.reweight_strategy()
@@ -173,7 +173,7 @@ class Samples:
             
     def _assymptotic_reweight(self):
         """
-        Reweight strategy for the asymptotic L-kernel 
+        Description: Reweight strategy for the asymptotic L-kernel 
 
         returns:
         New weights
@@ -186,7 +186,7 @@ class Samples:
 
     def _non_assympototic_reweight(self):
         """
-        Reweight strategy for the non-asymptotic L-kernel 
+        Description: Reweight strategy for the non-asymptotic L-kernel 
 
         returns:
         New weights
@@ -201,7 +201,7 @@ class Samples:
     
     def _tempering(self):
         """
-        Reweight strategy for the asymptotic L-kernel 
+        Description: Reweight strategy for the asymptotic L-kernel 
 
         returns:
         New weights
@@ -216,7 +216,7 @@ class Samples:
     
     def update_samples(self):
         """
-        Update the samples for the next iteration
+        Description: Update the samples for the next iteration
         
         """
         self.phi_old = self.phi_new

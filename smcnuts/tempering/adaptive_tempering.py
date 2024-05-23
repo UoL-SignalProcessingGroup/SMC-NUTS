@@ -4,6 +4,12 @@ from scipy.special import logsumexp
 
 
 class AdaptiveTempering():
+    """
+    Description
+    -----------
+    Class to handle ESS based tempering scheme.
+    """
+
     def __init__(self, N, target, alpha=0.5):
         self.N = N  # Number of particles
         self.target = target  # Target

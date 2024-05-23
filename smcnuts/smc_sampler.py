@@ -9,7 +9,7 @@ from smcnuts.proposal.nuts import NUTSProposal
 class SMCSampler():
     """Hamiltonian Monte Carlo (NUTS) SMC Sampler
 
-    An SMC sampler that uses Hamiltonian Monte Carlo (HMC) methods to sample
+    Description: An SMC sampler that uses Hamiltonian Monte Carlo (HMC) methods to sample
     from the target distribution of interest.
 
     Attributes:
@@ -69,12 +69,11 @@ class SMCSampler():
         self.x_saved[0] = self.samples.x
         self.logw_saved[0] = self.samples.logw
 
-        if hasattr(self.target, "constrained_dim"):
-            self.mean_estimate = np.zeros([self.K + 1, self.target.constrained_dim])
-            self.variance_estimate = np.zeros([self.K + 1, self.target.constrained_dim])
-        else:
-            self.mean_estimate = np.zeros([self.K + 1, self.target.dim])
-            self.variance_estimate = np.zeros([self.K + 1, self.target.dim])
+        # Create arrray for mean and variance estimates
+        self.mean_estimate = np.zeros([self.K + 1, self.target.dim])
+        self.variance_estimate = np.zeros([self.K + 1, self.target.dim])
+
+
 
 
     def estimate(self, x, wn):
@@ -106,7 +105,7 @@ class SMCSampler():
 
     def update_sampler(self, k, mean_estimate, variance_estimate):
         """
-            Update the sampler for evaluation purposes.
+            Description: Update the sampler for evaluation purposes to output.
         """
         
         self.log_likelihood[k] = self.samples.log_likelihood
@@ -114,15 +113,13 @@ class SMCSampler():
         self.variance_estimate[k] = variance_estimate
         self.ess[k] = self.samples.ess
         self.acceptance_rate[k] = (np.sum(np.all(self.samples.x_new != self.samples.x, axis=1)) / self.N) # Calculate number of accepted particles
-
-        self.x_saved[k+1] = self.samples.x
-        self.logw_saved[k+1] = self.samples.logw
+ 
 
         
     def estimate_from_tempered(self):
         """ Calculate adjusted weights, and form estimates of all past simulated samples.
 
-        This function calculates the adjusted importance weights `ess_logw` for all samples. The
+        Description: This function calculates the adjusted importance weights `ess_logw` for all samples. The
         weights are defined as \pi(x) / \pi(x, \phi_k) where \pi(x) is the target density and
         \pi(x, \phi_k) is the density of the kth proposal. The adjusted weights are then used to
         form estimates of the mean and variance of the target density.
@@ -149,19 +146,19 @@ class SMCSampler():
             
             # Calculate mean and variance estimates
             self.mean_estimate[k], self.variance_estimate[k] = self.estimate(x, ess_wn)
-
+        
 
 
     def sample(self, show_progress=True):
         """
-        Sample from the target distribution using an SMC sampler.
+        Description: Sample from the target distribution using an SMC sampler.
         """
 
         start_time = time()
 
         # Main sampling loop
         for k in tqdm(range(self.K), desc=f"NUTS Sampling", disable=not show_progress):
-            
+            #update temperature
             self.phi[k] = self.samples.phi_new
 
             # Normalise the weights
@@ -178,7 +175,7 @@ class SMCSampler():
 
             # Propose new samples
             self.samples.propose_samples()
-            
+
             # Temper distribution (non-tempered setting will result with \phi always equal to 1.0)
             self.samples.update_temperature()
             
@@ -190,6 +187,8 @@ class SMCSampler():
             
             # Update samples at the end of current iteration
             self.samples.update_samples()
+            self.x_saved[k+1] = self.samples.x_new
+            self.logw_saved[k+1] = self.samples.logw_new
             
         # Calculate the final params based on the final proposal step  
         self.samples.normalise_weights()
