@@ -6,7 +6,7 @@ from smcnuts.proposal.nuts import NUTSProposal
 # Set max tree death of NUTS tree, default is 2^10.
 MAX_TREE_DEPTH = 10
 
-class NUTSProposal_with_AccRej(NUTSProposal):
+class NUTSProposalWithAccRej(NUTSProposal):
     """No-U-Turn Sampler Proposal
 
     Propagate samples using the proposal from the No-U-Turn proposal [1] with accept-reject step at the end. Algorithm is largely based on Alg. 3 of the reference. 
@@ -22,7 +22,7 @@ class NUTSProposal_with_AccRej(NUTSProposal):
         
     """
 
-    def rvs(self, x_cond, r_cond, grad_x, phi: float = 1.0):
+    def rvs(self, x_cond, r_cond, phi: float = 1.0):
         """
         Description:
             Propogate a set of samples using the proposal from the No-U-Turn Sampler.
@@ -37,7 +37,7 @@ class NUTSProposal_with_AccRej(NUTSProposal):
             r_prime: Updated particle momenta.
         """
 
-        x_prime, r_prime = super(NUTSProposal_with_AccRej, self).rvs(x_cond, r_cond, grad_x, phi)
+        x_prime, r_prime = super(NUTSProposal_with_AccRej, self).rvs(x_cond, r_cond, phi)
    
         # Apply an accept-reject step for the assymptoptic L-kernel. 
         accepted = np.array([False] * len(x_prime))

@@ -2,7 +2,7 @@ import numpy as np
 from scipy.special import logsumexp
 from smcnuts.lkernel.forward_lkernel import ForwardLKernel
 from smcnuts.lkernel.gaussian_lkernel import GaussianApproxLKernel
-from smcnuts.tempering.adaptive_tempering import AdaptiveTempering
+from smcnuts.tempering.adaptive_tempering import ESSTempering
 
 class Samples:
     def __init__(self,
@@ -25,7 +25,7 @@ class Samples:
         target: The target we wish to evaluate
         forward_kernel: The forward proposal (i.e. NUTS)
         lkernel: The L-kernel strategy being used, either i) GaussianApprox ii) forwards iii) asymptotic
-        tempering: Boolean. True if target is to be tempered with adaptive cooling strategy
+        tempering: Boolean. True if target is to be tempered with ESS cooling strategy
         rng: random number seed
         """
         self.N = N
@@ -38,18 +38,18 @@ class Samples:
         ## Set-up l-kernel if it is a function to be evaluated
         if lkernel == "GaussianApproxLKernel":
             self.lkernel = GaussianApproxLKernel(target=self.target, N=self.N)
-            self.reweight_strategy = self._non_assympototic_reweight
+            self.reweight_strategy = self._non_asympototic_reweight
         elif lkernel == "forwardsLKernel":
             self.lkernel = ForwardLKernel(target=self.target, momentum_proposal=self.forward_kernel.momentum_proposal)
-            self.reweight_strategy = self._non_assympototic_reweight
+            self.reweight_strategy = self._non_asympototic_reweight
         elif lkernel == "asymptoticLKernel":
-            self.reweight_strategy = self._assymptotic_reweight
+            self.reweight_strategy = self._asymptotic_reweight
         else:
             raise Exception("Unknown L-kernel supplied") 
 
         # Set up tempering if it is being used, if not set all the temperatures to be equal to 1.0  
         if tempering:
-            self.TemperingScheme = AdaptiveTempering(self.N, self.target, alpha = 0.5)
+            self.TemperingScheme = ESSTempering(self.N, self.target, alpha = 0.5)
             self.update_temperature = self._tempering
             self.phi_old = 0.0
             self.phi_new = 0.0
@@ -134,7 +134,6 @@ class Samples:
         Args:
             x: A list of samples to resample
             wn: A list of normalise sample weights to resample
-            indexes: A list of the indexes of samples and weights to resample
 
         Returns:
             x_new: A list of resampled samples
@@ -149,18 +148,20 @@ class Samples:
         # Determine new weights
         logw_new = (np.ones(self.N) * log_likelihood) - np.log(self.N)
 
-        return x_new, logw_new
-    
+        self.x_new = x_new
+        self.logw_new = logw_new    
+
 
     def propose_samples(self):
         """
         Description: Run proposal distribution to generate a new set of samples
         
         """
-        # Propogate particles through the forward kernel
+        # Sample initial momentum
         self.r = self.forward_kernel.momentum_proposal.rvs(self.N)
-        grad_x = self.target.logpdfgrad(self.x, phi=self.phi_new)
-        self.x_new, self.r_new= self.forward_kernel.rvs(self.x, self.r, grad_x, phi=self.phi_new)
+   	
+   	# Propogate particles through the forward kernel
+        self.x_new, self.r_new= self.forward_kernel.rvs(self.x, self.r, phi=self.phi_new)
         
         
     def reweight(self):
@@ -171,7 +172,7 @@ class Samples:
         self.logw_new = self.reweight_strategy()
 
             
-    def _assymptotic_reweight(self):
+    def _asymptotic_reweight(self):
         """
         Description: Reweight strategy for the asymptotic L-kernel 
 
@@ -183,8 +184,9 @@ class Samples:
         p_logpdf_x_phi_new = self.target.logpdf(self.x, phi=self.phi_new)
 
         return self.logw + p_logpdf_x_phi_new - p_logpdf_x_phi_old
+        
 
-    def _non_assympototic_reweight(self):
+    def _non_asympototic_reweight(self):
         """
         Description: Reweight strategy for the non-asymptotic L-kernel 
 
@@ -198,6 +200,7 @@ class Samples:
         q_logpdf = self.forward_kernel.logpdf(self.r)
 
         return self.logw + p_logpdf_xnew - p_logpdf_x + lkernel_logpdf - q_logpdf
+    
     
     def _tempering(self):
         """
@@ -213,6 +216,7 @@ class Samples:
         self.phi_new = phi_new
         
         return phi_new
+        
     
     def update_samples(self):
         """

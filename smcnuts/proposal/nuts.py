@@ -35,7 +35,7 @@ class NUTSProposal:
         self.step_size = step_size
         self.rng = rng
 
-    def rvs(self, x_cond, r_cond, grad_x, phi: float = 1.0):
+    def rvs(self, x_cond, r_cond, phi: float = 1.0):
         """
         Description:
             Propogate a set of samples using the proposal from the No-U-Turn Sampler.
@@ -43,8 +43,6 @@ class NUTSProposal:
         Args:
             x_cond: Current particle positions.
             r_cond: Current particle momenta.
-            grad_x: Current particle gradients.
-
         Returns:
             x_prime: Updated particle positions.
             r_prime: Updated particle momenta.
@@ -55,12 +53,12 @@ class NUTSProposal:
         # For each sample, generate a new set of proposed samples using NUTS
         for i in range(len(x_cond)):
             x_prime[i], r_prime[i] = self.generate_nuts_samples(
-                x_cond[i], r_cond[i], grad_x[i], phi=phi
+                x_cond[i], r_cond[i], phi=phi
             )
         
         return x_prime, r_prime
 
-    def generate_nuts_samples(self, x0, r0, grad_x, phi: float = 1.0):
+    def generate_nuts_samples(self, x0, r0, phi: float = 1.0):
 
         """
         Description
@@ -71,6 +69,9 @@ class NUTSProposal:
         logp = self.target.logpdf(x0, phi=phi)    
         self.H0 = logp - 0.5 * np.dot(r0, r0.T)            
         logu = float(self.H0 - self.rng.exponential(1))
+        
+        # Precalculate the gradient for efficiency
+        grad_x = self.target.logpdfgrad(x0, phi=self.phi)
         
         # initialize the NUTS tree 
         x = x0

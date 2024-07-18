@@ -2,7 +2,7 @@ from time import time
 import autograd.numpy as np
 from tqdm import tqdm
 from smcnuts.samples.samples import Samples
-from smcnuts.proposal.nuts_acc_rej import NUTSProposal_with_AccRej
+from smcnuts.proposal.nuts_acc_rej import NUTSProposalWithAccRej
 from smcnuts.proposal.nuts import NUTSProposal
 
 
@@ -40,7 +40,7 @@ class SMCSampler():
 
         # Force asymptotic forward kernels to use NUTS with accept-reject mechanism
         if(lkernel=="asymptoticLKernel"):
-            forward_kernel = NUTSProposal_with_AccRej(
+            forward_kernel = NUTSProposalWithAccRej(
             target=self.target,
             momentum_proposal=momentum_proposal,
             step_size = step_size,
