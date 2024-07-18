@@ -119,12 +119,9 @@ class Samples:
     def resample_if_required(self):
         """
         Description: Resample if effective sample size is below the threshold (hard coded to 1/2)
-        Returns true if resample required and performs the resampling, else returns false
         """
         if(self.ess < self.N / 2):
-            self.x, self.logw = self._resample(self.x,  self.wn, self.log_likelihood)
-            return True
-        return False
+            self._resample(self.x,  self.wn, self.log_likelihood)
 
 
     def _resample(self, x, wn, log_likelihood):

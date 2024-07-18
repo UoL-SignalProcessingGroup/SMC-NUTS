@@ -17,7 +17,7 @@ ii) Averaged Mean Square Estimates (MSE) for raw estimates compared to a 'gold-s
 """
 
 #Number of Monte-Carlo runs
-N_MC_RUNS = 25
+N_MC_RUNS = 1
 
 # Specify model - CHANGE THIS TO CHANGE STAN MODEL
 model_name = "arma"

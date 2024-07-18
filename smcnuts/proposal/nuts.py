@@ -1,6 +1,5 @@
 import autograd.numpy as np
 from scipy.stats import multivariate_normal
-from .utils import hmc_accept_reject
 
 # Set max tree death of NUTS tree, default is 2^10.
 MAX_TREE_DEPTH = 10
@@ -26,12 +25,10 @@ class NUTSProposal:
         target,
         momentum_proposal,
         step_size,
-        accept_reject: bool = False,
-        rng = np.random.default_rng(),
+        rng = np.random.default_rng()
     ):
         self.target = target
         self.momentum_proposal = momentum_proposal
-        self.accept_reject = accept_reject
         self.step_size = step_size
         self.rng = rng
 
@@ -67,11 +64,12 @@ class NUTSProposal:
         """
         
         logp = self.target.logpdf(x0, phi=phi)    
-        self.H0 = logp - 0.5 * np.dot(r0, r0.T)            
+        self.H0 = logp - 0.5 * np.dot(r0, r0.T) 
+
         logu = float(self.H0 - self.rng.exponential(1))
         
         # Precalculate the gradient for efficiency
-        grad_x = self.target.logpdfgrad(x0, phi=self.phi)
+        grad_x = self.target.logpdfgrad(x0, phi=phi)
         
         # initialize the NUTS tree 
         x = x0

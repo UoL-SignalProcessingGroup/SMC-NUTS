@@ -21,6 +21,9 @@ class NUTSProposalWithAccRej(NUTSProposal):
         step_size: Step size for the leapfrog integrator.
         
     """
+    
+    def __init__(self, target, momentum_proposal, step_size, rng = np.random.default_rng()):
+        super().__init__(target,  momentum_proposal, step_size, rng)
 
     def rvs(self, x_cond, r_cond, phi: float = 1.0):
         """
@@ -37,7 +40,7 @@ class NUTSProposalWithAccRej(NUTSProposal):
             r_prime: Updated particle momenta.
         """
 
-        x_prime, r_prime = super(NUTSProposal_with_AccRej, self).rvs(x_cond, r_cond, phi)
+        x_prime, r_prime = super(NUTSProposalWithAccRej, self).rvs(x_cond, r_cond, phi)
    
         # Apply an accept-reject step for the assymptoptic L-kernel. 
         accepted = np.array([False] * len(x_prime))
