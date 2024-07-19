@@ -145,8 +145,8 @@ class Samples:
         # Determine new weights
         logw_new = (np.ones(self.N) * log_likelihood) - np.log(self.N)
 
-        self.x_new = x_new
-        self.logw_new = logw_new    
+        self.x = x_new
+        self.logw = logw_new    
 
 
     def propose_samples(self):
@@ -157,7 +157,7 @@ class Samples:
         # Sample initial momentum
         self.r = self.forward_kernel.momentum_proposal.rvs(self.N)
    	
-   	# Propogate particles through the forward kernel
+   	    # Propogate particles through the forward kernel
         self.x_new, self.r_new= self.forward_kernel.rvs(self.x, self.r, phi=self.phi_new)
         
         
@@ -171,7 +171,7 @@ class Samples:
             
     def _asymptotic_reweight(self):
         """
-        Description: Reweight strategy for the asymptotic L-kernel 
+        Description: Reweight strategy for the asymptotic L-kernel. Note, that it is assumed that this strategy will use tempering
 
         returns:
         New weights
