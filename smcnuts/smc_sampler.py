@@ -38,7 +38,7 @@ class SMCSampler():
         self.rng=rng
         self.lkernel = lkernel
 
-        # Force asymptotic forward kernels to use NUTS with accept-reject mechanism
+        # Force asymptotic forward kernels to use NUTS with accept-reject mechanism with tempering
         if(lkernel=="asymptoticLKernel"):
             forward_kernel = NUTSProposalWithAccRej(
             target=self.target,

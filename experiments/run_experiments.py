@@ -31,7 +31,7 @@ sample_proposal : = Set an initial distribution of samples
 step_size : step size for the numerical integration. Taken from '../stan_models/$Model_name$/config_model.json', otherwise defaults to 0.5
 momentum_proposal : Set a distribution from which to sample a momentum value
 accept_reject : Turn on the accept_reject mechanism
-lkernel: Set L-kernel. Matching configurations above asymptoptic (i), forward_lkernel (ii), and gauss_lkernel (iii)
+lkernel: Set L-kernel. Matching configurations above asymptoptic with temprering (i), forward_lkernel (ii), and gauss_lkernel (iii)
 """
 
 #Number of Monte-Carlo runs
@@ -42,6 +42,8 @@ N = 100 #Number of samples
 K = 15 #Number of iterations
 
 # Specify model - CHANGE THIS TO CHANGE STAN MODEL
+# Note: The stan file has been modified to include a temperature variable "phi" which is used in all likelihood terms within the stan model block
+# Phi is updated within the SMC code via the data to allow us to calclulate the tempered model at the required instances.
 model_name = "arma"
 
 
