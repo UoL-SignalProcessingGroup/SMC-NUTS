@@ -52,6 +52,7 @@ class NUTSProposal:
             x_prime[i], r_prime[i] = self.generate_nuts_samples(
                 x_cond[i], r_cond[i], phi=phi
             )
+
         
         return x_prime, r_prime
 

@@ -152,7 +152,7 @@ def main():
             tempering=False,
             rng=rng,
         )
-
+        rng.set_state(initial_state)
         gauss_nuts_smcs.sample()
 
         print(f"\nFinished sampling in {gauss_nuts_smcs.run_time} seconds")
@@ -178,7 +178,9 @@ def main():
             rng=rng,
         )
 
+
         tempered_nuts_smcs.sample()
+
 
         print(f"\nFinished sampling in {tempered_nuts_smcs.run_time} seconds")
 
