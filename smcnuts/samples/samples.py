@@ -58,9 +58,6 @@ class Samples:
             self.update_temperature =  lambda : 1.0
             self.phi_old = 1.0
             self.phi_new = 1.0
-        
-        # Set up initial sample properties
-        self.initialise_samples()
          
 
     def initialise_samples(self):

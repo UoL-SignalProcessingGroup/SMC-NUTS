@@ -4,6 +4,8 @@ from tqdm import tqdm
 from smcnuts.samples.samples import Samples
 from smcnuts.proposal.nuts_acc_rej import NUTSProposalWithAccRej
 from smcnuts.proposal.nuts import NUTSProposal
+from smcnuts.estimate.estimate import Estimate
+from smcnuts.estimate.estimate_from_tempered import EstimateFromTempered
 
 
 class SMCSampler():
@@ -38,13 +40,19 @@ class SMCSampler():
         self.rng=rng
         self.lkernel = lkernel
 
+
+        # Turn into a congfiguration class?
         # Force asymptotic forward kernels to use NUTS with accept-reject mechanism with tempering
         if(lkernel=="asymptoticLKernel"):
             forward_kernel = NUTSProposalWithAccRej(
             target=self.target,
             momentum_proposal=momentum_proposal,
             step_size = step_size,
-            rng=self.rng)        
+            rng=self.rng)
+
+            self.estimator = EstimateFromTempered(self.target, self.N, self.K, self.rng)
+            
+
         else:
             forward_kernel = NUTSProposal(
             target=self.target,
@@ -52,6 +60,9 @@ class SMCSampler():
             step_size = step_size,
             rng=self.rng)
 
+            self.estimator = Estimate(self.target)
+
+            
         # Set up arrays to be output when the sampler has finished
         self.resampled = [False] * (self.K + 1)
         self.ess = np.zeros(self.K + 1)
@@ -65,6 +76,7 @@ class SMCSampler():
 
         # Generate the set of samples to be used in the sampling process
         self.samples = Samples(self.N, self.target.dim, sample_proposal, self.target, forward_kernel, lkernel, tempering, rng) 
+        self.samples.initialise_samples()
 
         self.x_saved[0] = self.samples.x
         self.logw_saved[0] = self.samples.logw
@@ -72,35 +84,6 @@ class SMCSampler():
         # Create arrray for mean and variance estimates
         self.mean_estimate = np.zeros([self.K + 1, self.target.dim])
         self.variance_estimate = np.zeros([self.K + 1, self.target.dim])
-
-
-
-
-    def estimate(self, x, wn):
-        """
-        Description:
-            Importance sampling estimate of the mean and variance of the
-            target distribution.
-
-        Args:
-            x: Particle positions.
-            wn: Normalised importance weights.
-
-        Returns:
-            mean_estimate: Estimated mean of the target distribution.
-            variance_estimate: Estimated variance of the target distribution.
-        """
-
-        if hasattr(self.target, "constrained_dim"):
-            _x = self.target.constrain(x)
-        else:
-            _x = x.copy()
-
-        mean = wn.T @ _x
-        x_shift = _x - mean
-        var = wn.T @ np.square(x_shift)
-
-        return mean, var
 
 
     def update_sampler(self, k, mean_estimate, variance_estimate):
@@ -114,39 +97,6 @@ class SMCSampler():
         self.ess[k] = self.samples.ess
         self.acceptance_rate[k] = (np.sum(np.all(self.samples.x_new != self.samples.x, axis=1)) / self.N) # Calculate number of accepted particles
  
-
-        
-    def estimate_from_tempered(self):
-        """ Calculate adjusted weights, and form estimates of all past simulated samples.
-
-        Description: This function calculates the adjusted importance weights `ess_logw` for all samples. The
-        weights are defined as \pi(x) / \pi(x, \phi_k) where \pi(x) is the target density and
-        \pi(x, \phi_k) is the density of the kth proposal. The adjusted weights are then used to
-        form estimates of the mean and variance of the target density.
-        """
-
-        ess_logw = np.zeros([self.K+1, self.N])
-
-        for k in range(self.K+1):
-            # Using weights calculated in the the sampler draw a set a set of samples
-            self.samples.logw = self.logw_saved[k]
-            self.samples.normalise_weights()
-            wn = self.samples.wn
-            
-            z = np.linspace(0, self.N-1, self.N, dtype=int)
-            z_new = self.rng.choice(z, self.N, p=wn)
-            x = self.x_saved[k].copy()[z_new]
-
-            # Calculate importance weights and normalise
-            ess_logw[k] = self.target.logpdf(x) - self.target.logpdf(x, phi=self.phi[k])
-            self.samples.logw = ess_logw[k]
-            
-            self.samples.normalise_weights()
-            ess_wn = self.samples.wn
-            
-            # Calculate mean and variance estimates
-            self.mean_estimate[k], self.variance_estimate[k] = self.estimate(x, ess_wn)
-        
 
 
     def sample(self, show_progress=True):
@@ -165,7 +115,7 @@ class SMCSampler():
             self.samples.normalise_weights()
 
             # Form estimates
-            mean_estimate, variance_estimate = self.estimate(self.samples.x, self.samples.wn)
+            mean_estimate, variance_estimate = self.estimator.return_estimate(self.samples.x, self.samples.wn)
             
             # Calculate the effective sample size
             self.samples.calculate_ess()
@@ -192,7 +142,7 @@ class SMCSampler():
             
         # Calculate the final params based on the final proposal step  
         self.samples.normalise_weights()
-        mean_estimate, variance_estimate = self.estimate(self.samples.x, self.samples.wn)
+        mean_estimate, variance_estimate = self.estimator.return_estimate(self.samples.x, self.samples.wn)
         self.samples.calculate_ess()
 
         # Update sampler properties for the final proposal step
@@ -201,6 +151,6 @@ class SMCSampler():
         
         # If using the asymptotic approach we calculate the estimates using the adjusted tempered weights
         if(self.lkernel=="asymptoticLKernel"):
-            self.estimate_from_tempered()
+            self.mean_estimate, self.variance_estimate = self.estimator.estimate_from_tempered(self.x_saved, self.logw_saved, self.phi)
 
         self.run_time = time() - start_time
