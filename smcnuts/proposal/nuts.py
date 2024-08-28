@@ -1,5 +1,4 @@
 import autograd.numpy as np
-from scipy.stats import multivariate_normal
 
 # Set max tree death of NUTS tree, default is 2^10.
 MAX_TREE_DEPTH = 10
