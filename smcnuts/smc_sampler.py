@@ -41,7 +41,6 @@ class SMCSampler():
         self.lkernel = lkernel
 
 
-        # Turn into a congfiguration class?
         # Force asymptotic forward kernels to use NUTS with accept-reject mechanism with tempering
         if(lkernel=="asymptoticLKernel"):
             forward_kernel = NUTSProposalWithAccRej(

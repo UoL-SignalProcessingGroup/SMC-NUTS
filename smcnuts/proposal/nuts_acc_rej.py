@@ -1,5 +1,4 @@
 import autograd.numpy as np
-from scipy.stats import multivariate_normal
 from .utils import hmc_accept_reject
 from smcnuts.proposal.nuts import NUTSProposal
 
