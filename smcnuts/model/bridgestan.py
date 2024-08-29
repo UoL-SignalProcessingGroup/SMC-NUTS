@@ -1,7 +1,7 @@
 import os
 import json
 import bridgestan as bs
-import autograd.numpy as np
+import numpy as np
 
 
 class StanModel():

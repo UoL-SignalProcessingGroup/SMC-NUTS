@@ -1,4 +1,4 @@
-import autograd.numpy as np
+import numpy as np
 
 # Set max tree death of NUTS tree, default is 2^10.
 MAX_TREE_DEPTH = 10

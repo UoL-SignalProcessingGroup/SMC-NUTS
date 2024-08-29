@@ -1,4 +1,4 @@
-import autograd.numpy as np
+import numpy as np
 from .utils import hmc_accept_reject
 from smcnuts.proposal.nuts import NUTSProposal
 
