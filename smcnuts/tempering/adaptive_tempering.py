@@ -3,7 +3,13 @@ from scipy.optimize import bisect
 from scipy.special import logsumexp
 
 
-class AdaptiveTempering():
+class ESSTempering():
+    """
+    Description
+    -----------
+    Class to handle ESS based tempering scheme.
+    """
+
     def __init__(self, N, target, alpha=0.5):
         self.N = N  # Number of particles
         self.target = target  # Target
