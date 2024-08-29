@@ -1,4 +1,4 @@
-import autograd.numpy as np
+import numpy as np
 
 def hmc_accept_reject(target_lpdf, x, x_prime, r, r_prime, phi=1.0, rng=np.random.default_rng()):
     

@@ -1,5 +1,5 @@
 from time import time
-import autograd.numpy as np
+import numpy as np
 from tqdm import tqdm
 from smcnuts.samples.samples import Samples
 from smcnuts.proposal.nuts_acc_rej import NUTSProposalWithAccRej

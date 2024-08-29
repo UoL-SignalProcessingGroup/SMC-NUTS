@@ -10,7 +10,6 @@ setup(
     python_requires='>=3.9',
     install_requires=[
         "numpy>=1.19",
-        "autograd>=1.6",
         "seaborn>=0.12",
         "matplotlib>=3.7",
         "scipy>=1.10",
