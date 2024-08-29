@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-import autograd.numpy as np
+import numpy as np
 import seaborn as sns
 from scipy.stats import multivariate_normal
 

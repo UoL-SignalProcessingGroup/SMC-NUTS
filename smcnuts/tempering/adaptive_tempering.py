@@ -1,4 +1,4 @@
-import autograd.numpy as np
+import numpy as np
 from scipy.optimize import bisect
 from scipy.special import logsumexp
 
